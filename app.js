@@ -207,7 +207,11 @@ let selectedStickerId = null;
 let blocksProgram = []; // array of block objects for Ages 4–5
 let draggingBlockType = null;
 
-const STORAGE_KEY = "starbyteQuest.v1";\r\nconst APP_VERSION = "2026-01-15.1";\r\n\r\n// ---------------------- Skill Tree / Badges ----------------------\r\nconst SKILLS = [
+const STORAGE_KEY = "starbyteQuest.v1";
+const APP_VERSION = "2026-01-15.1";
+
+// ---------------------- Skill Tree / Badges ----------------------
+const SKILLS = [
   { id:"talker", name:"Talker", emoji:"💬", desc:"Used say() at least 3 times", need:{talk:3} },
   { id:"mover",  name:"Mover",  emoji:"➡️", desc:"Moved around 10 times", need:{move:10} },
   { id:"star",   name:"Star Maker", emoji:"⭐", desc:"Created 10 stars", need:{stars:10} },
@@ -216,7 +220,9 @@ const STORAGE_KEY = "starbyteQuest.v1";\r\nconst APP_VERSION = "2026-01-15.1";\r
   { id:"vars",   name:"Variable Wizard", emoji:"🧠", desc:"Used variables 3 times", need:{vars:3} },
   { id:"func",   name:"Function Hero", emoji:"🧩", desc:"Wrote functions 2 times", need:{funcs:2} },
   { id:"rand",   name:"Random Ranger", emoji:"🎲", desc:"Used randomInt() 2 times", need:{random:2} },
-];\r\n\r\nlet ensuringProfile = false;
+];
+
+let ensuringProfile = false;
 
 // ---------------------- Themes (generic, kid-friendly) ----------------------
 const THEMES = {
@@ -3887,6 +3893,7 @@ function unlockWithMath(){
   }
 }
 mathGateUnlockBtn?.addEventListener("click", unlockWithMath);
+
 
 
 

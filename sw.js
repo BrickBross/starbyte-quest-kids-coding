@@ -1,5 +1,5 @@
 // Starbyte Quest Service Worker (offline cache)
-const CACHE = "starbyte-cache-v6";
+const CACHE = "starbyte-cache-v7";
 const ASSETS = [
   "./",
   "./index.html",
