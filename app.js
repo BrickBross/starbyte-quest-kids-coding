@@ -208,6 +208,7 @@ let blocksProgram = []; // array of block objects for Ages 4–5
 let draggingBlockType = null;
 
 const STORAGE_KEY = "starbyteQuest.v1";
+let ensuringProfile = false;
 
 // ---------------------- Themes (generic, kid-friendly) ----------------------
 const THEMES = {
@@ -2260,7 +2261,6 @@ function saveProfile(profileId, data){
 }
 
 const APP_VERSION = "2026-01-15.1";
-let ensuringProfile = false;
 function ensureDefaultProfile(){
   if (ensuringProfile) return;
   ensuringProfile = true;
