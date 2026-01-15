@@ -556,17 +556,6 @@ function renderDashboard(){
     `;
     dashGrid.appendChild(card);
   });
-
-  const custom = getCustomLevels(packId).map((c) => ({
-    title: c.title,
-    story: c.story,
-    objective: c.objective,
-    hint: c.hint,
-    starter: c.starter,
-    validate: buildCustomValidate(c.checkRule)
-  }));
-
-  return [...edited, ...custom];
 }
 
 // ---------------------- Parent mode (simple PIN) ----------------------
@@ -580,7 +569,7 @@ function isParentMode(){
 function setParentMode(on){
   saveState({ parentMode: !!on });
   parentPanel.classList.toggle("enabled", !!on);
-  parentBtn.textContent = on ? "Parent Mode 🔓" : "Parent Mode 🔒";
+  parentBtn.textContent = on ? "Parent Mode: On" : "Parent Mode: Off";
   renderStickers();
   refreshParentEditors();
   renderDashboard();
@@ -3900,6 +3889,7 @@ function unlockWithMath(){
   }
 }
 mathGateUnlockBtn?.addEventListener("click", unlockWithMath);
+
 
 
 
