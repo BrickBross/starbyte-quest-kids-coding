@@ -416,7 +416,7 @@ function loadState(){
   }
 }
 function saveState(patch){
-  const st = readActiveProfile();
+  const st = loadState();
   const next = { ...st, ...patch };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   return next;
@@ -2257,7 +2257,10 @@ function saveProfile(profileId, data){
   }catch{}
 }
 
+let ensuringProfile = false;
 function ensureDefaultProfile(){
+  if (ensuringProfile) return;
+  ensuringProfile = true;
   let st = loadState();
   const profilesById = { ...(st.profilesById || {}) };
   if (!profilesById.default){
@@ -2283,6 +2286,7 @@ function ensureDefaultProfile(){
       avatar: st.avatar || { base:"🙂", hat:"", pet:"" },
     });
   }
+  ensuringProfile = false;
 }
 
 function readActiveProfile(){
