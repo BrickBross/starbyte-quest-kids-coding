@@ -179,6 +179,7 @@ const jumpLevelInput = $("jumpLevelInput");
 const jumpLevelBtn = $("jumpLevelBtn");
 const unlockAllStickersBtn = $("unlockAllStickersBtn");
 const resetProgressBtn = $("resetProgressBtn");
+const clearCacheBtn = $("clearCacheBtn");
 
 const editStory = $("editStory");
 const editObjective = $("editObjective");
@@ -1614,6 +1615,18 @@ resetProgressBtn.addEventListener("click", () => {
   initFromStorage();
   alert("Progress reset.");
 });
+clearCacheBtn?.addEventListener("click", () => {
+  if (!isParentMode()) return;
+  if (!confirm("Clear all local Starbyte Quest data on this device?")) return;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch{}
+  try{
+    for (let i = localStorage.length - 1; i >= 0; i--){
+      const k = localStorage.key(i);
+      if (k && k.startsWith("starbyte_quest_profile_")) localStorage.removeItem(k);
+    }
+  }catch{}
+  location.reload();
+});
 
 // Parent edits
 applyEditsBtn.addEventListener("click", () => {
@@ -1651,6 +1664,7 @@ function initFromStorage(){
 }
 
 initFromStorage();
+console.log("Starbyte Quest app version", APP_VERSION);
 
 
 // ---------------------- Mini-games ----------------------
@@ -2257,6 +2271,7 @@ function saveProfile(profileId, data){
   }catch{}
 }
 
+const APP_VERSION = "2026-01-15.1";
 let ensuringProfile = false;
 function ensureDefaultProfile(){
   if (ensuringProfile) return;
@@ -2290,11 +2305,22 @@ function ensureDefaultProfile(){
 }
 
 function readActiveProfile(){
+  if (ensuringProfile){
+    const pid = loadState().activeProfileId || "default";
+    return loadProfile(pid) || {};
+  }
   ensureDefaultProfile();
   const pid = loadState().activeProfileId || "default";
   return loadProfile(pid) || {};
 }
 function writeActiveProfile(patch){
+  if (ensuringProfile){
+    const pid = loadState().activeProfileId || "default";
+    const cur = loadProfile(pid) || {};
+    const next = { ...cur, ...patch };
+    saveProfile(pid, next);
+    return next;
+  }
   ensureDefaultProfile();
   const pid = loadState().activeProfileId || "default";
   const cur = readActiveProfile();
