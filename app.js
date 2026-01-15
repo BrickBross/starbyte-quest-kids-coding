@@ -207,8 +207,16 @@ let selectedStickerId = null;
 let blocksProgram = []; // array of block objects for Ages 4–5
 let draggingBlockType = null;
 
-const STORAGE_KEY = "starbyteQuest.v1";
-let ensuringProfile = false;
+const STORAGE_KEY = "starbyteQuest.v1";\r\nconst APP_VERSION = "2026-01-15.1";\r\n\r\n// ---------------------- Skill Tree / Badges ----------------------\r\nconst SKILLS = [
+  { id:"talker", name:"Talker", emoji:"💬", desc:"Used say() at least 3 times", need:{talk:3} },
+  { id:"mover",  name:"Mover",  emoji:"➡️", desc:"Moved around 10 times", need:{move:10} },
+  { id:"star",   name:"Star Maker", emoji:"⭐", desc:"Created 10 stars", need:{stars:10} },
+  { id:"looper", name:"Loop Master", emoji:"🔁", desc:"Used repeat() 3 times", need:{loops:3} },
+  { id:"button", name:"Button Boss", emoji:"🎛️", desc:"Wired buttons 3 times", need:{buttons:3} },
+  { id:"vars",   name:"Variable Wizard", emoji:"🧠", desc:"Used variables 3 times", need:{vars:3} },
+  { id:"func",   name:"Function Hero", emoji:"🧩", desc:"Wrote functions 2 times", need:{funcs:2} },
+  { id:"rand",   name:"Random Ranger", emoji:"🎲", desc:"Used randomInt() 2 times", need:{random:2} },
+];\r\n\r\nlet ensuringProfile = false;
 
 // ---------------------- Themes (generic, kid-friendly) ----------------------
 const THEMES = {
@@ -2260,7 +2268,7 @@ function saveProfile(profileId, data){
   }catch{}
 }
 
-const APP_VERSION = "2026-01-15.1";
+
 function ensureDefaultProfile(){
   if (ensuringProfile) return;
   ensuringProfile = true;
@@ -2506,17 +2514,7 @@ worldsBtn?.addEventListener("click", () => { renderWorlds(); showModal(worldsMod
 closeWorldsBtn?.addEventListener("click", () => hideModal(worldsModal));
 
 
-// ---------------------- Skill Tree / Badges ----------------------
-const SKILLS = [
-  { id:"talker", name:"Talker", emoji:"💬", desc:"Used say() at least 3 times", need:{talk:3} },
-  { id:"mover",  name:"Mover",  emoji:"➡️", desc:"Moved around 10 times", need:{move:10} },
-  { id:"star",   name:"Star Maker", emoji:"⭐", desc:"Created 10 stars", need:{stars:10} },
-  { id:"looper", name:"Loop Master", emoji:"🔁", desc:"Used repeat() 3 times", need:{loops:3} },
-  { id:"button", name:"Button Boss", emoji:"🎛️", desc:"Wired buttons 3 times", need:{buttons:3} },
-  { id:"vars",   name:"Variable Wizard", emoji:"🧠", desc:"Used variables 3 times", need:{vars:3} },
-  { id:"func",   name:"Function Hero", emoji:"🧩", desc:"Wrote functions 2 times", need:{funcs:2} },
-  { id:"rand",   name:"Random Ranger", emoji:"🎲", desc:"Used randomInt() 2 times", need:{random:2} },
-];
+
 
 function getBadgeProgress(){
   const p = readActiveProfile();
@@ -3889,6 +3887,9 @@ function unlockWithMath(){
   }
 }
 mathGateUnlockBtn?.addEventListener("click", unlockWithMath);
+
+
+
 
 
 
