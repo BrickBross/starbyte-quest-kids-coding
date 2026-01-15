@@ -1,5 +1,5 @@
 // Starbyte Quest Service Worker (offline cache)
-const CACHE = "starbyte-cache-v3";
+const CACHE = "starbyte-cache-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -30,16 +30,31 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  const url = new URL(req.url);
+  const isAppShell = url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith("/app.js") ||
+    url.pathname.endsWith("/style.css") ||
+    url.pathname.endsWith("/manifest.json");
   event.respondWith((async () => {
-    const cached = await caches.match(req, { ignoreSearch: true });
+    const cache = await caches.open(CACHE);
+    if (isAppShell){
+      try{
+        const fresh = await fetch(req);
+        cache.put(req, fresh.clone());
+        return fresh;
+      }catch{
+        const cached = await cache.match(req);
+        return cached || caches.match("./");
+      }
+    }
+    const cached = await cache.match(req);
     if (cached) return cached;
     try {
       const fresh = await fetch(req);
-      const cache = await caches.open(CACHE);
       cache.put(req, fresh.clone());
       return fresh;
     } catch (e) {
-      return cached || caches.match("./");
+      return caches.match("./");
     }
   })());
 });
