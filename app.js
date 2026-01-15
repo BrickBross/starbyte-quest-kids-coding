@@ -480,16 +480,6 @@ function renderAlbum(){
     albumGrid.appendChild(div);
   });
 
-  const custom = getCustomLevels(packId).map((c) => ({
-    title: c.title,
-    story: c.story,
-    objective: c.objective,
-    hint: c.hint,
-    starter: c.starter,
-    validate: buildCustomValidate(c.checkRule)
-  }));
-
-  return [...edited, ...custom];
 }
 
 function renderCertificate(){
@@ -1750,7 +1740,7 @@ function buildMiniGameSrcdoc(kind){
     function spawnObj(){
       const d=document.createElement("div");
       d.className="obj";
-      if (${json.dumps(kind)}==="starcatch"){
+      if (${JSON.stringify(kind)}==="starcatch"){
         d.textContent="★";
         d.style.background="rgba(255,211,90,.95)";
         d.style.left = rand(10, play.clientWidth-44) + "px";
@@ -1785,13 +1775,13 @@ function buildMiniGameSrcdoc(kind){
       scoreEl.textContent=score; timerEl.textContent=t;
       play.innerHTML="";
       clearInterval(tick); clearInterval(spawn);
-      spawn = setInterval(spawnObj, ${"350" if kind=="starcatch" else "420"});
+      spawn = setInterval(spawnObj, ${kind === "starcatch" ? 350 : 420});
       tick = setInterval(()=>{
         t--; timerEl.textContent=t;
         if (t<=0){
           clearInterval(tick); clearInterval(spawn);
           // report back to parent (stars as bonus)
-          parent.postMessage({type:"MINIGAME_DONE", kind:${json.dumps(kind)}, score}, "*");
+          parent.postMessage({type:"MINIGAME_DONE", kind:${JSON.stringify(kind)}, score}, "*");
         }
       }, 1000);
     }
