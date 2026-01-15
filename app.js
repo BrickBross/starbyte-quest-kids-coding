@@ -2258,14 +2258,15 @@ function saveProfile(profileId, data){
 }
 
 function ensureDefaultProfile(){
-  const st = readActiveProfile();
+  let st = loadState();
   const profilesById = { ...(st.profilesById || {}) };
   if (!profilesById.default){
     profilesById.default = { id:"default", name:"Default", createdAt: Date.now() };
-    saveState({ profilesById, activeProfileId: "default" });
+    st = { ...st, profilesById, activeProfileId: "default" };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
   }
   // Ensure per-profile storage exists by cloning global into profile on first run
-  const pid = loadState().activeProfileId || "default";
+  const pid = st.activeProfileId || "default";
   if (!loadProfile(pid)){
     // Create a clean per-profile state bucket
     saveProfile(pid, {
@@ -2274,12 +2275,12 @@ function ensureDefaultProfile(){
       editsByPack: {},
       customLevelsByPack: {},
       skillsByPack: {},
-      stickerPack: loadState().stickerPack || "mix",
-      theme: loadState().theme || "candy",
-      worldId: loadState().worldId || "candy",
-      storyOn: loadState().storyOn !== false,
+      stickerPack: st.stickerPack || "mix",
+      theme: st.theme || "candy",
+      worldId: st.worldId || "candy",
+      storyOn: st.storyOn !== false,
       historyLog: [],
-      avatar: loadState().avatar || { base:"🙂", hat:"", pet:"" },
+      avatar: st.avatar || { base:"🙂", hat:"", pet:"" },
     });
   }
 }
@@ -3870,3 +3871,6 @@ function unlockWithMath(){
   }
 }
 mathGateUnlockBtn?.addEventListener("click", unlockWithMath);
+
+
+
