@@ -1616,7 +1616,6 @@ resetProgressBtn.addEventListener("click", () => {
   alert("Progress reset.");
 });
 clearCacheBtn?.addEventListener("click", () => {
-  if (!isParentMode()) return;
   if (!confirm("Clear all local Starbyte Quest data on this device?")) return;
   try{ localStorage.removeItem(STORAGE_KEY); }catch{}
   try{
