@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Starbyte Quest</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#7cf7ff">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <section class="homeScreen" id="homeScreen" aria-hidden="true">
+    <div class="homeCard">
+      <img src="logo.svg" alt="Starbyte Quest" class="homeLogo"/>
+      <p class="homeSub">Choose a mode:</p>
+      <div class="homeTiles">
+        <button class="tile" id="tilePlay">
+          <div class="tileIcon">🎮</div>
+          <div class="tileTitle">Play</div>
+          <div class="tileNote">Levels + stickers</div>
+        </button>
+        <button class="tile" id="tileLearn">
+          <div class="tileIcon">🧠</div>
+          <div class="tileTitle">Learn</div>
+          <div class="tileNote">Guided lessons</div>
+        </button>
+        <button class="tile" id="tileMake">
+          <div class="tileIcon">🧰</div>
+          <div class="tileTitle">Make</div>
+          <div class="tileNote">Build mini-games</div>
+        </button>
+        <button class="tile" id="tileTrophies">
+          <div class="tileIcon">🏆</div>
+          <div class="tileTitle">Trophies</div>
+          <div class="tileNote">Collect awards</div>
+        </button>
+      </div>
+      <div class="homeRow">
+        <button class="btn primary" id="startBtn">Start ▶</button>
+        <button class="btn" id="walkthroughBtn">Show me how ✨</button>
+      </div>
+      <p class="tinyNote">Tip: Works on phone, tablet, laptop, and ultrawide screens.</p>
+    </div>
+  </section>
+
+  <div class="modal" id="onboardModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Welcome to Starbyte Quest ✨</div>
+          <div class="tinyNote">A quick 60‑second tour.</div>
+        </div>
+        <button class="btn small" id="closeOnboardBtn">Close ✕</button>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="onboardSteps" id="onboardSteps"></div>
+        <div class="controls" style="justify-content:space-between;">
+          <button class="btn" id="prevOnboardBtn">◀ Back</button>
+          <button class="btn primary" id="nextOnboardBtn">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">★</div>
+      <div>
+        <div class="title">Starbyte Quest</div>
+        <div class="subtitle">Browser-only coding adventure for kids</div>
+      </div>
+    </div>
+
+    <div class="topControls">
+      <div class="ctrlGroup">
+        <label class="ctrlLabel" for="agePackSelect">Age pack</label>
+        <select id="agePackSelect" class="select">
+          <option value="4-5">Ages 4–5 (super simple)</option>
+          <option value="6-7">Ages 6–7 (beginner)</option>
+          <option value="7-8" selected>Ages 7–8 (recommended)</option>
+          <option value="9-10">Ages 9–10 (challenge)</option>
+        </select>
+      </div>
+
+      <div class="ctrlGroup">
+        <label class="ctrlLabel" for="themeSelect">Theme</label>
+        <select id="themeSelect" class="select">
+          <option value="candy" selected>Candy Pop</option>
+          <option value="ocean">Ocean Blue</option>
+          <option value="jungle">Jungle Green</option>
+          <option value="space">Space Glow</option>
+          <option value="sunset">Sunset Gold</option>
+          <option value="rainbow">Rainbow Burst</option>
+          <option value="fairy">Fairy Garden</option>
+          <option value="icecream">Ice Cream</option>
+          <option value="dino">Dino World</option>
+          <option value="pirate">Pirate Treasure</option>
+          <option value="castle">Princess Castle</option>
+          <option value="neon">Neon Arcade</option>
+        </select>
+      </div>
+
+      <div class="ctrlGroup">
+        <button id="profilesBtn" class="btn small">Profiles 👧👦</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="worldsBtn" class="btn small">Worlds 🗺️</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="skillTreeBtn" class="btn small">Skill Tree 🌳</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="dailyBtn" class="btn small">Daily 🎁</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="shareBtn" class="btn small">Share 🔗</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="makerBtn" class="btn small">Maker 🧰</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="trophiesBtn" class="btn small">Trophies 🏆</button>
+      </div>
+<div class="ctrlGroup">
+        <button id="installBtn" class="btn small">Install 📲</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="teacherBtn" class="btn small">Teacher 🏫</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="lockBtn" class="btn small">Lock 🔒</button>
+      </div>
+      <div class="ctrlGroup">
+        <select id="langSelect" class="select small" title="Language">
+          <option value="en">English</option>
+          <option value="mi">Te Reo Māori</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+      <div class="ctrlGroup">
+        <button id="narrateBtn" class="btn small" aria-pressed="false">Narration: Off 🗣️</button>
+      </div>
+      </div>
+      <div class="ctrlGroup">
+        <button id="reportBtn" class="btn small">Report 📄</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="avatarBtn" class="btn small">Avatar 🧑‍🚀</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="homeBtn" class="btn small">Home 🏠</button>
+        <button id="aboutBtn" class="btn small">About 📘</button>
+      </div>
+      <div class="ctrlGroup">
+        <button id="parentBtn" class="btn small">Parent Mode 🔒</button>
+      </div>
+
+      <div class="ctrlGroup">
+        <label class="ctrlLabel" for="stickerPackSelect">Stickers</label>
+        <select id="stickerPackSelect" class="select">
+          <option value="mix" selected>Mix Pack</option>
+          <option value="animals">Animals</option>
+          <option value="fantasy">Fantasy</option>
+          <option value="space">Space</option>
+          <option value="sweet">Sweet Treats</option>
+          <option value="achieve">Achievements</option>
+        </select>
+      </div>
+
+      <div class="ctrlGroup">
+        <label class="ctrlLabel" for="soundToggle">Sound</label>
+        <button id="soundToggle" class="btn small" aria-pressed="false">Sound: Off 🔇</button>
+      </div>
+
+    </div>
+
+    <div class="progress">
+      <div class="levelLabel" id="levelLabel"></div>
+      <div class="barOuter" aria-label="progress">
+        <div class="barInner" id="barInner"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="card">
+        <h2 id="levelTitle">Level</h2>
+        <p id="levelStory" class="story"></p>
+
+        <div class="objective">
+          <div class="badge">Objective</div>
+          <div id="levelObjective"></div>
+        </div>
+
+        <div class="hint">
+          <div class="badge alt">Hint</div>
+          <div id="levelHint"></div>
+        </div>
+
+        <div class="controls">
+          <button id="runBtn" class="btn primary">Run ▶</button>
+          <button id="resetBtn" class="btn">Reset ↺</button>
+          <button id="nextBtn" class="btn success" disabled>Next Level ➜</button>
+        </div>
+
+        <div class="status" id="statusBox" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="card">
+        <h3>Buttons (for some levels)</h3>
+        <div class="buttonRow">
+          <button class="btn small" data-gamebtn="A">A</button>
+          <button class="btn small" data-gamebtn="B">B</button>
+          <button class="btn small" data-gamebtn="C">C</button>
+        </div>
+        <p class="tinyNote">Some levels ask you to connect code to these buttons.</p>
+      </div>
+
+      <div class="card">
+        <h3>Stickers & Unlocks</h3>
+        <p class="tinyNote">Earn ⭐ by completing levels. More stickers unlock as you progress.</p>
+        <div class="stickerShelf" id="stickerShelf"></div>
+        <div class="controls">
+          <button id="useStickerBtn" class="btn small" disabled>Use Sticker on Hero</button>
+          <button id="clearStickerBtn" class="btn small">Clear Sticker</button>
+          <button id="openMiniGamesBtn" class="btn small">Mini-Games 🎮</button>
+          <button id="openCertificateBtn" class="btn small">Certificate 🏅</button>
+        </div>
+        <div class="tinyNote" id="stickerNote"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="card editorCard">
+        <div class="editorHeader">
+          <h2>Your Code</h2>
+          <div class="miniTools">
+            <button id="copyStarterBtn" class="btn small">Restore Starter</button>
+          </div>
+        </div>
+
+        <textarea id="codeBox" spellcheck="false"></textarea>
+
+        <div class="tinyNote">
+          Tip: If something breaks, press <b>Restore Starter</b> or <b>Reset</b>.
+        </div>
+      </div>
+
+      
+      <div class="card blocksCard" id="blocksCard">
+        <div class="editorHeader">
+          <h2>Blocks (Ages 4–5)</h2>
+          <div class="miniTools">
+            <button id="blocksClearBtn" class="btn small">Clear Blocks</button>
+          </div>
+        </div>
+
+        <div class="blocksWrap">
+          <div class="blocksCol">
+            <div class="blocksTitle">Pick a block</div>
+            <div class="blocksPalette" id="blocksPalette" aria-label="Block palette">
+              <!-- filled by JS -->
+            </div>
+            <div class="tinyNote">Drag blocks into the space on the right (or tap a block to add).</div>
+          </div>
+
+          <div class="blocksCol">
+            <div class="blocksTitle">Build your program</div>
+            <div class="blocksWorkspace" id="blocksWorkspace" aria-label="Block workspace">
+              <div class="blocksEmpty" id="blocksEmpty">Drag blocks here ✨</div>
+            </div>
+            <div class="controls">
+              <button id="blocksRunBtn" class="btn primary">Run Blocks ▶</button>
+              <button id="blocksUndoBtn" class="btn">Undo ↺</button>
+            </div>
+            <div class="tinyNote">Blocks automatically turn into code for the game.</div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="card parentOnly" id="parentPanel">
+        <h2>Parent Mode</h2>
+        <p class="tinyNote">
+          Parent Mode lets you: jump to any level, edit level text, and unlock all stickers.
+          This is stored only in the browser (no accounts).
+        </p>
+
+        <div class="parentGrid">
+          <div class="ctrlGroup">
+            <label class="ctrlLabel" for="jumpLevelInput">Jump to level</label>
+            <input id="jumpLevelInput" class="input" type="number" min="1" step="1" placeholder="e.g. 3" />
+          </div>
+          <div class="ctrlGroup">
+            <label class="ctrlLabel">&nbsp;</label>
+            <button id="jumpLevelBtn" class="btn">Jump</button>
+          </div>
+          <div class="ctrlGroup">
+            <label class="ctrlLabel">&nbsp;</label>
+            <button id="unlockAllStickersBtn" class="btn">Unlock All Stickers</button>
+          </div>
+          <div class="ctrlGroup">
+            <label class="ctrlLabel">&nbsp;</label>
+            <button id="resetProgressBtn" class="btn">Reset Progress</button>
+          </div>
+        </div>
+
+        <details class="details">
+          <summary>Edit current level text</summary>
+          <div class="parentEdit">
+            <label class="ctrlLabel" for="editStory">Story</label>
+            <textarea id="editStory" class="textarea"></textarea>
+
+            <label class="ctrlLabel" for="editObjective">Objective</label>
+            <textarea id="editObjective" class="textarea"></textarea>
+
+            <label class="ctrlLabel" for="editHint">Hint</label>
+            <textarea id="editHint" class="textarea"></textarea>
+
+            <div class="controls">
+              <button id="applyEditsBtn" class="btn">Apply</button>
+              <button id="revertEditsBtn" class="btn">Revert</button>
+            </div>
+            <p class="tinyNote">Edits apply only to this browser and this age pack.</p>
+          </div>
+        </details>
+
+        <hr class="hr" />
+
+        <h3>Parent Dashboard</h3>
+        <div class="dashGrid" id="dashGrid"></div>
+        <p class="tinyNote">Tracks are approximate and stored locally (no accounts).</p>
+
+        <hr class="hr" />
+        <h3>Level Builder (Add Your Own)</h3>
+        <p class="tinyNote">Create a new level for the selected age pack. It saves only on this device.</p>
+
+        <div class="parentEdit">
+          <label class="ctrlLabel" for="newLevelTitle">Level title</label>
+          <input id="newLevelTitle" class="input" placeholder="e.g. Treasure Dance" />
+
+          <label class="ctrlLabel" for="newLevelStory">Story</label>
+          <textarea id="newLevelStory" class="textarea" placeholder="Fun story..."></textarea>
+
+          <label class="ctrlLabel" for="newLevelObjective">Objective</label>
+          <textarea id="newLevelObjective" class="textarea" placeholder="What should they do?"></textarea>
+
+          <label class="ctrlLabel" for="newLevelHint">Hint</label>
+          <textarea id="newLevelHint" class="textarea" placeholder="A helpful tip..."></textarea>
+
+          <label class="ctrlLabel" for="newLevelStarter">Starter code</label>
+          <textarea id="newLevelStarter" class="textarea" placeholder='say("Hello!");'></textarea>
+
+          <label class="ctrlLabel" for="newLevelCheck">Check rule</label>
+          <select id="newLevelCheck" class="select">
+            <option value="saidSomething">Hero said something</option>
+            <option value="changedColor">Changed colour</option>
+            <option value="movedRight">Moved right far</option>
+            <option value="madeStars3">Made 3+ stars</option>
+            <option value="wiredA">Wired button A</option>
+            <option value="usedRandom">Used randomInt</option>
+          </select>
+
+          <div class="controls">
+            <button id="addLevelBtn" class="btn success">Add Level</button>
+            <button id="clearCustomLevelsBtn" class="btn">Clear Custom Levels</button>
+          </div>
+          <p class="tinyNote">Custom levels appear after the built-in 10 levels (so you can keep adding!).</p>
+        </div>
+
+        <hr class="hr" />
+        <h3>Young Learner Buttons (Ages 4–5)</h3>
+        <p class="tinyNote">For little ones: tap to insert code into the editor (works for any pack).</p>
+        <div class="insertRow" id="insertRow">
+          <button class="btn small" data-insert='say("Hello!")'>Insert say()</button>
+          <button class="btn small" data-insert='setColor("pink")'>Insert setColor()</button>
+          <button class="btn small" data-insert='moveRight(80)'>Insert moveRight()</button>
+          <button class="btn small" data-insert='addStar()'>Insert addStar()</button>
+          <button class="btn small" data-insert='repeat(3, () => {\n  addStar();\n});'>Insert repeat()</button>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="card">
+        <h2>Game Screen</h2>
+        <div class="gameWrap">
+          <iframe id="gameFrame" title="Game" sandbox="allow-scripts"></iframe>
+        </div>
+
+        <div class="card subtle">
+          <h3>How it works</h3>
+          <ul class="bullets">
+            <li>Your child edits simple commands (like <b>say</b>, <b>moveRight</b>, <b>repeat</b>).</li>
+            <li>Code runs safely inside the game screen (an iframe sandbox).</li>
+            <li>The game reports back what happened so we can check the objective.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>Runs fully in your browser. No server. No external images/fonts/scripts.</div>
+  </footer>
+
+  <!-- Modals -->
+  <div class="modal" id="miniGamesModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Mini-Games</div>
+          <div class="tinyNote">Quick fun challenges. Some unlock after you earn ⭐.</div>
+        </div>
+        <button class="btn small" id="closeMiniGamesBtn">Close ✕</button>
+      </div>
+
+      <div class="miniGrid" id="miniGamesList"></div>
+      <p class="tinyNote">Tip: Mini-games run inside the Game Screen. They don’t need the code box.</p>
+    </div>
+  </div>
+
+  <div class="modal" id="certificateModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Certificate</div>
+          <div class="tinyNote">Print or save as PDF from your browser print dialog.</div>
+        </div>
+        <button class="btn small" id="closeCertificateBtn">Close ✕</button>
+      </div>
+
+      <div class="cert" id="certArea">
+        <div class="certTop">★ Starbyte Quest ★</div>
+        <div class="certBig">Certificate of Coding Awesomeness</div>
+        <div class="certLine">This certifies that</div>
+        <div class="certName" id="certName">Awesome Coder</div>
+        <div class="certLine">completed the</div>
+        <div class="certPack" id="certPack">Ages 7–8 Pack</div>
+        <div class="certLine">and earned</div>
+        <div class="certStars"><span id="certStars">0</span> ⭐</div>
+        <div class="certFooter">
+          <div>Date: <span id="certDate"></span></div>
+          <div>Keep coding!</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input id="certNameInput" class="input" placeholder="Child name (optional)" />
+        <button class="btn success" id="printCertBtn">Print / Save PDF</button>
+      </div>
+      <p class="tinyNote">Certificate shows even if the pack isn’t finished yet — finishing a pack adds a “Completed” stamp.</p>
+    </div>
+  </div>
+
+  <div class="modal" id="albumModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Sticker Album</div>
+          <div class="tinyNote">Collect stickers by earning ⭐ or unlock them in Parent Mode.</div>
+        </div>
+        <button class="btn small" id="closeAlbumBtn">Close ✕</button>
+      </div>
+      <div class="albumGrid" id="albumGrid"></div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="profilesModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Profiles</div>
+          <div class="tinyNote">Separate progress for siblings (saved locally on this device).</div>
+        </div>
+        <button class="btn small" id="closeProfilesBtn">Close ✕</button>
+      </div>
+      <div class="controls">
+        <input id="newProfileName" class="input" placeholder="New profile name (e.g., Mia)" />
+        <button id="addProfileBtn" class="btn success">Add Profile</button>
+      </div>
+      <div class="dashGrid" id="profilesGrid"></div>
+      <p class="tinyNote">Tip: You can rename/delete profiles in Parent Mode later (future enhancement).</p>
+    </div>
+  </div>
+
+  <div class="modal" id="worldsModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">World Map</div>
+          <div class="tinyNote">Choose a world. Each world has its own story vibe + sticker suggestions.</div>
+        </div>
+        <button class="btn small" id="closeWorldsBtn">Close ✕</button>
+      </div>
+      <div class="miniGrid" id="worldsGrid"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="skillTreeModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Skill Tree</div>
+          <div class="tinyNote">Unlock skills as you code. Each skill gives a badge.</div>
+        </div>
+        <button class="btn small" id="closeSkillTreeBtn">Close ✕</button>
+      </div>
+      <div class="dashGrid" id="skillTreeGrid"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="dailyModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Daily Challenge</div>
+          <div class="tinyNote">A new challenge each day (local). Complete it for bonus ⭐.</div>
+        </div>
+        <button class="btn small" id="closeDailyBtn">Close ✕</button>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="modalTitle" id="dailyTitle">Daily</div>
+        <p class="tinyNote" id="dailyDesc"></p>
+        <div class="controls">
+          <button id="startDailyBtn" class="btn primary">Start Daily ▶</button>
+          <button id="claimDailyBtn" class="btn success" disabled>Claim Reward ⭐</button>
+        </div>
+        <p class="tinyNote" id="dailyStatus"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="reportModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Progress Report</div>
+          <div class="tinyNote">Printable report for parents/teachers.</div>
+        </div>
+        <button class="btn small" id="closeReportBtn">Close ✕</button>
+      </div>
+      <div class="cert" id="reportArea">
+        <div class="certTop">★ Starbyte Quest ★</div>
+        <div class="certBig">Weekly Progress Report</div>
+        <div class="certLine">Profile: <b id="reportProfile">-</b></div>
+        <div class="certLine">World: <b id="reportWorld">-</b></div>
+        <div class="certLine">Stars: <b id="reportStars">0</b> ⭐</div>
+        <div class="certLine">Levels completed this week: <b id="reportLevels">0</b></div>
+        <div class="certLine">Skills practiced: <b id="reportSkills">-</b></div>
+        <div class="certFooter"><div>Date: <span id="reportDate"></span></div><div>Keep it fun ✨</div></div>
+      </div>
+      <div class="controls">
+        <button id="printReportBtn" class="btn success">Print / Save PDF</button>
+      </div>
+      <p class="tinyNote">This report is based on local device history. If browser storage is cleared, history resets.</p>
+    </div>
+  </div>
+
+  <div class="modal" id="avatarModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Avatar Creator</div>
+          <div class="tinyNote">Pick a hero look. Unlock accessories with ⭐.</div>
+        </div>
+        <button class="btn small" id="closeAvatarBtn">Close ✕</button>
+      </div>
+      <div class="dashGrid" id="avatarGrid"></div>
+      <p class="tinyNote">Avatar applies instantly to the Game Screen.</p>
+    </div>
+  </div>
+
+
+  <div class="modal" id="shareModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Share a Creation</div>
+          <div class="tinyNote">Export your code/blocks into a link. Works without servers.</div>
+        </div>
+        <button class="btn small" id="closeShareBtn">Close ✕</button>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="dashRow"><span>Mode</span><b id="shareModeLabel">-</b></div>
+        <p class="tinyNote">Export link includes: age pack, level, theme, sticker pack, avatar, and either blocks or code.</p>
+        <div class="controls">
+          <button id="exportLinkBtn" class="btn primary">Make Share Link ✨</button>
+          <button id="importLinkBtn" class="btn">Import from Link/Paste</button>
+        </div>
+        <textarea id="shareBox" class="textarea" style="width:100%;min-height:120px;" placeholder="Share link will appear here..."></textarea>
+        <div class="qrRow">
+          <div>
+            <div class="tinyNote" style="margin-top:10px;">QR Code (scan on another device)</div>
+            <canvas id="qrCanvas" width="220" height="220" class="qrCanvas"></canvas>
+          </div>
+          <div class="qrHelp tinyNote">
+            Use your camera to scan. If the code is long, it may take a second to focus.
+          </div>
+        </div>
+        <p class="tinyNote">Tip: Tap inside the box then “Select all” to copy.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="makerModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Mini-game Maker</div>
+          <div class="tinyNote">Build a mini-game with blocks (kid-friendly).</div>
+        </div>
+        <button class="btn small" id="closeMakerBtn">Close ✕</button>
+      </div>
+
+      <div class="blocksWrap" style="padding:0;">
+        <div class="blocksCol">
+          <div class="blocksTitle">Game Type</div>
+          <div class="controls">
+            <select id="makerKind" class="select">
+              <option value="starCatch">Star Catch</option>
+              <option value="targetTap">Target Tap</option>
+            </select>
+            <input id="makerSeconds" class="input" type="number" min="10" max="90" value="30" placeholder="Seconds" />
+            <input id="makerGoal" class="input" type="number" min="1" max="50" value="10" placeholder="Goal" />
+          </div>
+          <p class="tinyNote">Seconds = how long. Goal = points to win.</p>
+
+          <div class="blocksTitle" style="margin-top:12px;">Blocks</div>
+          <div class="blocksPalette" id="makerPalette"></div>
+        </div>
+
+        <div class="blocksCol">
+          <div class="blocksTitle">Your Game Script</div>
+          <div class="blocksWorkspace" id="makerWorkspace">
+            <div class="blocksEmpty" id="makerEmpty">Drag blocks here ✨</div>
+          </div>
+          <div class="controls">
+            <button id="makerRunBtn" class="btn primary">Run Mini-game ▶</button>
+            <button id="makerClearBtn" class="btn">Clear</button>
+          </div>
+          <p class="tinyNote">This runs in the Game Screen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="trophiesModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Trophy Cabinet</div>
+          <div class="tinyNote">Collect trophies and celebrate with confetti!</div>
+        </div>
+        <button class="btn small" id="closeTrophiesBtn">Close ✕</button>
+      </div>
+      <div class="controls" style="margin-bottom:10px;">
+  <button id="printTrophyCertBtn" class="btn success" disabled>Print Trophy Certificate 🏅</button>
+</div>
+<div class="dashGrid" id="trophiesGrid"></div>
+<p class="tinyNote">Certificates unlock when trophy sets are completed.</p>
+    </div>
+  </div>
+
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+  <div class="modal" id="lockModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Parent Lock 🔒</div>
+          <div class="tinyNote">Stop accidental exits and hide parent-only controls behind a PIN.</div>
+        </div>
+        <button class="btn small" id="closeLockBtn">Close ✕</button>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <div class="dashGrid">
+          <div class="dashCard">
+            <h4>Kid-Safe Focus Mode</h4>
+            <div class="tinyNote">When ON: exit confirmation, limited shortcuts, no right-click, and parent-only buttons hidden.</div>
+            <div class="controls" style="margin-top:10px;">
+              <button id="toggleFocusBtn" class="btn primary">Turn Focus Mode On</button>
+              <button id="requestFullscreenBtn" class="btn">Go Fullscreen ⛶</button>
+            </div>
+            <p class="tinyNote">Fullscreen depends on browser support and usually needs a tap.</p>
+          </div>
+
+          <div class="dashCard">
+            <h4>PIN</h4>
+            <div class="tinyNote">Set a 4-digit PIN. Needed to unlock Focus Mode and show parent controls.</div>
+            <div class="controls" style="margin-top:10px; flex-wrap:wrap;">
+              <input id="pinInput" class="input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="New PIN (4 digits)" style="width:180px;"/>
+              <button id="setPinBtn" class="btn success">Set PIN</button>
+            </div>
+            <div class="controls" style="margin-top:10px; flex-wrap:wrap;">
+              <input id="pinUnlockInput" class="input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Enter PIN to Unlock" style="width:180px;"/>
+              <button id="unlockBtn" class="btn">Unlock</button>
+            </div>
+            <p class="tinyNote"><b>Tip:</b> If you forget the PIN, you can clear it in localStorage (README explains).</p>
+          </div>
+
+          
+          <div class="dashCard">
+            <h4>Math Gate (PIN Alternative)</h4>
+            <div class="tinyNote">Instead of a PIN, require a quick math question to unlock Focus Mode.</div>
+            <div class="controls" style="margin-top:10px; flex-wrap:wrap;">
+              <label class="tinyNote" style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="mathGateToggle" />
+                Enable Math Gate
+              </label>
+            </div>
+            <div class="controls" style="margin-top:10px; flex-wrap:wrap;">
+              <button id="mathGateUnlockBtn" class="btn">Unlock with Math 🧮</button>
+              <span class="tinyNote">Uses easy questions (e.g., 7 + 5). Great for parents too.</span>
+            </div>
+          </div>
+
+          <div class="dashCard">
+            <h4>What gets hidden in Focus Mode?</h4>
+            <ul class="tinyNote" style="margin:8px 0 0; padding-left:18px;">
+              <li>Share 🔗, Install 📲, Teacher 🏫, About 📘, Settings-type parent controls</li>
+              <li>Keyboard shortcuts like refresh (we try to block; browser rules vary)</li>
+              <li>Right-click context menu</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="teacherModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle">Teacher / Parent Curriculum</div>
+          <div class="tinyNote">Lesson plans, printable activities, and guidance for ages 4–10.</div>
+        </div>
+        <button class="btn small" id="closeTeacherBtn">Close ✕</button>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <div class="controls" style="justify-content:space-between; align-items:center;">
+          <div class="tinyNote"><b>Suggested path:</b> 10-day intro → 30-day journey → 100-day mastery</div>
+          <button id="printLessonBtn" class="btn success">Print Lesson Pack 📄</button>
+        </div>
+
+        <div class="dashGrid" id="lessonGrid"></div>
+
+        <div class="card" style="padding:12px; margin-top:12px;">
+          <h3 style="margin:0 0 6px 0;">Printable Activities</h3>
+          <ul class="tinyNote" style="margin:0; padding-left:18px;">
+            <li>Trace-the-code (pre-readers): match blocks to pictures</li>
+            <li>Loop colouring: colour 3 stars, repeat</li>
+            <li>Debug hunt: circle the “wrong” block</li>
+            <li>Design sheet: draw your next world + trophy</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>
