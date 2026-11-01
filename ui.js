@@ -52,6 +52,10 @@
   const stickerCard = byId('stickerShelf').closest('.card');
   rewards.append(stickerCard);
   stagePanel.append(rewards);
+  const story = document.createElement('details');
+  story.className = 'rewardDrawer storyDrawer';
+  story.innerHTML = '<summary>📖 Our adventure</summary><div id="storyCard" class="card"><button id="storyToggle" class="btn small" aria-pressed="true">Story: On</button><p id="storyText" class="tinyNote"></p></div>';
+  stagePanel.append(story);
   const gameButtons = questPanel.firstElementChild;
   gameButtons.classList.add('gameButtons');
   stagePanel.firstElementChild.append(gameButtons);
@@ -96,9 +100,10 @@
   let launchingTile = false;
   byId('startBtn').addEventListener('click', () => { if (!launchingTile) selectTile('play'); });
   ['tilePlay','tileLearn','tileMake','tileTrophies'].forEach(id => {
-    byId(id).addEventListener('click', () => queueMicrotask(() => {
+    byId(id).addEventListener('click', () => {
+      selectTile(({tilePlay:'play',tileLearn:'learn',tileMake:'make',tileTrophies:'trophies'})[id]);
       launchingTile = true; byId('startBtn').click(); launchingTile = false;
-    }));
+    });
   });
   // Close menu drawers after selecting an action or moving away.
   document.querySelectorAll('.menuDrawer').forEach(menu => {

@@ -252,9 +252,23 @@ MIT — see [`LICENSE`](./LICENSE).
 ### Forgot the PIN?
 This app stores settings in your browser's localStorage.
 - Open DevTools → Application/Storage → Local Storage → (your site)
-- Remove `starbyte_state` or edit it to clear `pinHash` and `focusModeOn`.
+- Edit `starbyteQuest.v1` to clear `pinHash` and `focusModeOn`.
 
 
 ### Math Gate (PIN alternative)
 - In **Parent Lock 🔒**, enable **Math Gate** to require a quick math question to unlock Focus Mode.
 - If a PIN is set, the PIN takes priority.
+
+## Browser tests
+
+Use Node and Chrome on Windows. No npm installation is required; QR encoding and the independent test decoder are vendored locally (see `THIRD_PARTY.md`).
+
+```powershell
+node browser-check.cjs
+$env:COMPONENT_AUDIT = '1'
+node e2e-check.cjs
+```
+
+The first command checks lesson behavior, including incorrect solutions and sandbox boundaries. The second runs real pointer/keyboard user journeys and the full component audit with isolated test profiles. It exercises menu routes, controls, blocks, drag-and-drop, emulated touch, parent tools, sharing, QR decoding, rewards, mini-games and offline reloads. `CHROME_PATH` can override the browser executable location.
+
+Results are written to ignored `browser-results.json`, `e2e-results.json` and `component-results.json` files. The component report includes an inventory of named controls and any not directly clicked. `TEST_REPORT.md` records the reviewed results and device-dependent limitations. Native printing, OS installation and audible speech still need manual device checks; the automated tests verify generated print content and those browser API integration paths.

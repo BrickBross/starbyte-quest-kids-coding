@@ -1,5 +1,23 @@
 # Game review and repair
 
+## Full component audit
+
+See [TEST_REPORT.md](TEST_REPORT.md) for the final results, the full component matrix, control inventory, reproduction commands and physical-device limits. The audit adds independent QR decoding, complete mini-game rounds and rewards, native block dragging, emulated touch, every modal close control, parent/custom tools, reset controls, printing-content checks and installation/speech/fullscreen hooks. Incorrect lesson programs are tested alongside correct reference programs.
+
+Repairs from this wider audit include the mini-game launcher, trusted home-tile routing, teacher lesson destinations, language restoration, PIN/math priority, QR encoding and size fallback, shared-URL initialization, custom goal/hint edits, trophy printing after reload, command insertion, zero movement values, theme changes that previously ran exercises, missing story controls, inconsistent backdrop dismissal, and lesson checks that previously accepted incomplete concepts. QR libraries and their licenses are documented in `THIRD_PARTY.md`.
+
+## Profile chooser and real-input end-to-end coverage
+
+The previous regression suite directly set profile state and called initialization. It verified storage and progress, but did not prove that a child could use the visible chooser. A pointer-driven reproduction showed that choosing an existing profile saved the selection and closed the modal without showing the chosen name in the main interface. Adding a profile also left the old child active.
+
+The chooser now labels the active child in the header and adventure banner, marks the current player in the list, and provides explicit Play as / Continue as buttons. Add & play creates and immediately selects the child with a chosen age pack. Switching uses one initialization path, clears the previous child’s transient selection, and restores the selected child’s saved pack, next lesson, theme and avatar. Blank names and storage failures show inline messages. Names render as text. Invalid saved active IDs fall back to the default profile.
+
+`e2e-check.cjs` uses real Chrome pointer hit-testing, mouse events and keyboard input for user actions. Assertions read the resulting UI, sandbox hero and saved data. The suite covers creating two children, choosing them on desktop and a phone viewport, completing typing and block quests, independent rewards, switching back, reload persistence, world/avatar changes, clues, sharing round trips, daily startup, trophies, Maker target clicks, invalid input and offline reload. This uncovered and fixed two further Maker issues: a broad CSS selector hid its Run button, and game-type capitalization caused Star Catch to create target icons.
+
+Validation after these repairs: 84 existing browser regression checks and 28 real-input journey checks passed, with no uncaught browser exceptions. Run `node browser-check.cjs` and `node e2e-check.cjs` from the repository root on Windows with Node and Chrome installed. The journey runner also accepts `CHROME_PATH` and writes ignored `e2e-results.json`; failed control hit tests save `e2e-failure.png`.
+
+This is Chrome automation with an emulated phone viewport, not exhaustive testing of every optional feature or physical device. Native install prompts, printing, QR scanning and device speech output have not been validated end to end. No hosted deployment was changed by this repair.
+
 ## Teach before asking for a solution
 
 Built-in quests now have separate teaching text, plain-language goals and three progressively more specific clues. Typing exercises start empty; blocks start empty with no answer highlighted. Command shapes explain syntax without inserting a completed program. The initial typing quest in packs 6–7 and 7–8 asks for three messages, so the one-message teaching example is a building block rather than the finished exercise.

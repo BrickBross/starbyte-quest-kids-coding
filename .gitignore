@@ -1,4 +1,8 @@
 .browser-test*/
 browser-results.json
+e2e-results.json
+component-results.json
+tests/artifacts/
+e2e-failure.png
 ui-*.png
 debug.log

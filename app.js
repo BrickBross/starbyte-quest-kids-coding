@@ -251,6 +251,7 @@ function applyTheme(themeName){
   root.style.setProperty("--accent", t.accent);
   root.style.setProperty("--accent2", t.accent2);
   root.style.setProperty("--chip", t.chip);
+  sendGameCommand('theme', t);
   // also tint background gradients a bit by letting CSS use variables (already does)
 }
 
@@ -338,6 +339,7 @@ function getActiveStickers(){
 
 function renderStickers(){
   const state = readActiveProfile();
+  updateProfileIdentity();
   const stars = state.progressStars || 0;
   const unlockedAll = !!state.parentUnlockAllStickers;
 
@@ -628,7 +630,7 @@ function makePack_4_5(){
       "Try: say(\"Hello!\")",
 `// Level 1
 say("Hello!");`,
-      s => ok(s.messages?.length >= 1, "Nice talking! ✅", "Add say(\"...\") then Run.")
+      s => ok(s.messages?.some(message=>message.trim()), "Nice talking! ✅", "Add say(\"...\") then Run.")
     ),
     L("Colour!", "Paint time! Pick your favourite colour.",
       "Change colour with setColor(\"pink\") (or any word).",
@@ -708,7 +710,7 @@ function makePack_6_7(){
 say("Hello!");
 say("I can code!");
 say("Let’s explore!");`,
-      s => ok((s.messages?.length||0) >= 3, "Three messages! You taught your hero to talk. ✅", "Add three messages, then Run.")
+      s => ok((s.messages?.filter(message=>message.trim()).length||0) >= 3, "Three messages! You taught your hero to talk. ✅", "Add three messages, then Run.")
     ),
     L("Colour Magic", "Choose your hero colour.",
       "Use setColor(\"...\").",
@@ -740,7 +742,7 @@ moveUp(70);`,
 repeat(3, () => {
   addStar();
 });`,
-      s => ok(s.stars >= 3 && s.loopRuns > 0, "Stars! ⭐⭐⭐✅", "Use a loop to make three stars.")
+      s => ok(s.loopStars >= 3, "Stars! ⭐⭐⭐✅", "Use a loop to make three stars.")
     ),
     L("Button A", "Make your hero respond to a button.",
       "Wire button A to moveRight(60).",
@@ -768,7 +770,7 @@ onButton("B", () => {
 `// Level 8
 let steps = 90;
 moveRight(steps);`,
-      s => ok(!!s.usedVariableSteps, "Variable used! ✅", "Make sure you use moveRight(steps).")
+      s => ok(!!s.usedVariableSteps && s.moves?.right > 0, "Variable used! ✅", "Make sure you use moveRight(steps).")
     ),
     L("Size + Colour", "Power up your hero style!",
       "Use setSize(120) and setColor(\"...\")",
@@ -784,7 +786,7 @@ setColor("pink");`,
 `// Level 10
 let n = randomInt(1, 3);
 repeat(n, () => addStar());`,
-      s => ok(!!s.usedRandomInt && s.stars >= 1 && s.stars <= 3, "Random win! 🎉✅", "Use randomInt(1,3) and repeat.")
+      s => ok(s.lastRandom?.min===1 && s.lastRandom?.max===3 && s.stars===s.lastRandom.value && s.loopStars===s.stars, "Random win! 🎉✅", "Use randomInt(1,3) and repeat.")
     ),
   ];
 }
@@ -799,7 +801,7 @@ function makePack_7_8(){
 say("Hi!");
 say("I'm learning code!");
 say("What shall we make?");`,
-      s => ok((s.messages?.length||0) >= 3, "Three messages! You taught your hero to talk. ✅", "Add three messages in one program, then Run.")
+      s => ok((s.messages?.filter(message=>message.trim()).length||0) >= 3, "Three messages! You taught your hero to talk. ✅", "Add three messages in one program, then Run.")
     ),
     L("Colour Magic", "A rainbow cloud floats by. Pick a colour to power-up your hero!",
       "Change the hero colour using setColor(\"pink\") (or any colour).",
@@ -842,7 +844,7 @@ say("Stars incoming!");
 repeat(3, () => {
   addStar();
 });`,
-      s => ok(s.stars >= 3 && s.loopRuns > 0, "Stars collected! ⭐⭐⭐✅", "Make three stars using a loop.")
+      s => ok(s.loopStars >= 3, "Stars collected! ⭐⭐⭐✅", "Make three stars using a loop.")
     ),
     L("Button A", "Now your hero listens to YOU. Press A to move!",
       "Make Button A move the hero right when pressed.",
@@ -861,7 +863,7 @@ onButton("A", () => {
 say("Variables are magic!");
 let steps = 90;
 moveRight(steps);`,
-      s => ok(!!s.usedVariableSteps, "Variable used! 🧠✅", "Make sure you have let steps = ...; then moveRight(steps);")
+      s => ok(!!s.usedVariableSteps && s.moves?.right > 0, "Variable used! 🧠✅", "Make sure you have let steps = ...; then moveRight(steps);")
     ),
     L("Functions", "Teach the computer a trick and reuse it. That’s a function!",
       "Create a function named jump() that moves up then down, and call it.",
@@ -875,7 +877,7 @@ function jump() {
 }
 
 jump();`,
-      s => ok(!!s.calledJumpFunction, "Function jump() worked! 🚀✅", "Make jump() and call it: jump();")
+      s => ok(!!s.calledJumpFunction && s.moves?.up > 0 && s.moves?.down > 0, "Function jump() worked! 🚀✅", "Make jump() and call it: jump();")
     ),
     L("Random Surprise", "Final level! Create a surprise using randomness!",
       "Use randomInt(1, 5) to add that many stars.",
@@ -889,7 +891,7 @@ repeat(n, () => {
 });
 
 say("I made " + n + " star(s)!");`,
-      s => ok(!!s.usedRandomInt && s.stars >= 1 && s.stars <= 5, "You finished Ages 7–8! 🎉✅", "Use randomInt(1,5) and create that many stars.")
+      s => ok(s.lastRandom?.min===1 && s.lastRandom?.max===5 && s.stars===s.lastRandom.value && s.loopStars===s.stars, "You finished Ages 7–8! 🎉✅", "Use randomInt(1,5) and create that many stars.")
     )
   ];
 }
@@ -902,7 +904,7 @@ function makePack_9_10(){
 `// Level 1
 let name = "Coder";
 say("Hi " + name + "!");`,
-      s => ok((s.messages?.length||0) >= 1, "Nice string + variable! ✅", "Use a variable and say with +.")
+      s => ok(s.usedGreetingVariable && (s.messages?.length||0) >= 1, "Nice string + variable! ✅", "Use a variable and say with +.")
     ),
     L("Coordinates", "Move to a spot using a few moves.",
       "Use moveRight and moveDown to reach the lower-right.",
@@ -919,7 +921,7 @@ moveDown(120);`,
 repeat(5, () => {
   addStar();
 });`,
-      s => ok(s.stars >= 5 && s.loopRuns > 0, "Loop complete! ✅", "Use a loop to add five stars.")
+      s => ok(s.loopStars >= 5, "Loop complete! ✅", "Use a loop to add five stars.")
     ),
     L("Event Control", "Wire A to moveRight and B to moveLeft.",
       "Use onButton for A and B.",
@@ -940,7 +942,7 @@ function square(){
   moveUp(60);
 }
 square();`,
-      s => ok(s.moves?.right > 0 && s.moves?.down > 0 && s.moves?.left > 0 && s.moves?.up > 0, "Square path complete! ✅", "Write square() and call it to move in all four directions.")
+      s => ok(s.calledSquareFunction && s.moves?.right > 0 && s.moves?.down > 0 && s.moves?.left > 0 && s.moves?.up > 0, "Square path complete! ✅", "Write square() and call it to move in all four directions.")
     ),
     L("Random Game", "Make random stars and say how many.",
       "Use randomInt(3,8), repeat, and say.",
@@ -949,7 +951,7 @@ square();`,
 let n = randomInt(3, 8);
 repeat(n, () => addStar());
 say("Stars: " + n);`,
-      s => ok(s.usedRandomInt && s.stars >= 3 && s.stars <= 8, "Random game complete! ✅", "Use randomInt(3,8) and repeat.")
+      s => ok(s.lastRandom?.min===3 && s.lastRandom?.max===8 && s.stars===s.lastRandom.value && s.loopStars===s.stars && s.messages?.some(message => message.includes(String(s.stars))), "Random game complete! ✅", "Use randomInt(3,8), repeat, and say how many stars.")
     ),
     L("Size Rules", "Change size based on a number.",
       "Use if (n > 5) setSize(140) else setSize(90).",
@@ -962,7 +964,7 @@ if (n > 5) {
   setSize(90);
 }
 say("n was " + n);`,
-      s => ok(s.usedRandomInt, "Conditional logic! ✅", "Use if/else with a random number.")
+      s => ok(s.usedIfElse && s.lastRandom?.min===1 && s.lastRandom?.max===10 && s.size===(s.lastRandom.value>5 ? 140 : 90), "Conditional logic! ✅", "Use if/else with a random number.")
     ),
     L("Multi-event", "Wire C to add 2 stars with a loop.",
       "onButton(\"C\", () => repeat(2, () => addStar()));",
@@ -984,7 +986,7 @@ function dance(){
 }
 dance();
 dance();`,
-      s => ok(s.moves?.left >= 4 && s.moves?.right >= 2, "Dance party! ✅", "Make a function and call it twice.")
+      s => ok(s.calledDanceFunction && s.moves?.left >= 4 && s.moves?.right >= 2, "Dance party! ✅", "Make a function and call it twice.")
     ),
     L("Finish!", "Final challenge: style + movement + stars.",
       "Use setColor, setSize, move, and add at least 3 stars.",
@@ -1125,6 +1127,7 @@ function buildGameSrcdoc(userCode) {
 
   const runId = ${activeRun?.id ?? 0};
   let executing = true;
+  let loopDepth = 0;
   const state = {
     x: 120,
     y: 220,
@@ -1141,6 +1144,7 @@ function buildGameSrcdoc(userCode) {
     buttonEffects: {},
     testedButtons: {},
     loopRuns: 0,
+    loopStars: 0,
     sticker: null
   };
 
@@ -1185,6 +1189,7 @@ function buildGameSrcdoc(userCode) {
 
   // -------- Kid API (simple functions) --------
   window.say = (text) => {
+    if (text === undefined) throw Error('Put your message inside the say parentheses.');
     const t = String(text);
     state.messages.push(t);
     addBubble(t);
@@ -1192,6 +1197,7 @@ function buildGameSrcdoc(userCode) {
   };
 
   window.setColor = (color) => {
+    if (!CSS.supports('color', String(color))) throw Error('Choose a valid colour word or colour code.');
     state.color = String(color);
     state.colorChanged = true;
     render();
@@ -1236,6 +1242,7 @@ function buildGameSrcdoc(userCode) {
 
   window.addStar = () => {
     state.stars += 1;
+    if (loopDepth > 0) state.loopStars++;
     const s = document.createElement("div");
     s.className = "star";
     s.textContent = "★";
@@ -1285,7 +1292,8 @@ function buildGameSrcdoc(userCode) {
     state.loopRuns++;
     const n = Number(times);
     const count = (Number.isFinite(n) ? Math.max(0, Math.min(40, Math.floor(n))) : 0);
-    for (let i = 0; i < count; i++) fn();
+    loopDepth++;
+    try { for (let i = 0; i < count; i++) fn(); } finally { loopDepth--; }
     sendState();
   };
 
@@ -1304,7 +1312,9 @@ function buildGameSrcdoc(userCode) {
     const b = Math.floor(Number(max));
     const lo = Math.min(a,b);
     const hi = Math.max(a,b);
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) throw Error('randomInt needs two number limits.');
     const r = lo + Math.floor(Math.random() * (hi - lo + 1));
+    state.lastRandom = {min:lo,max:hi,value:r};
     return r;
   };
 
@@ -1348,6 +1358,12 @@ function buildGameSrcdoc(userCode) {
     setSticker(state.sticker);
     sendState();
   };
+  window.__setTheme = (theme) => {
+    document.documentElement.style.setProperty('--bg', theme.bg);
+    document.documentElement.style.setProperty('--accent2', theme.accent2);
+    if (!state.colorChanged) state.color = theme.accent2;
+    render();
+  };
 
   window.__placeSticker = (emoji, x, y) => {
     if (!emoji) return;
@@ -1375,10 +1391,10 @@ function buildGameSrcdoc(userCode) {
   window.addEventListener("message", (event) => {
     if (event.source !== parent || event.data?.type !== "GAME_COMMAND") return;
     const { command, args = [] } = event.data;
-    const allowed = { press: window.__pressButton, sticker: window.__applySticker, place: window.__placeSticker, avatar: window.__setAvatar };
+    const allowed = { press: window.__pressButton, sticker: window.__applySticker, place: window.__placeSticker, avatar: window.__setAvatar, theme:window.__setTheme };
     try { if (allowed[command]) allowed[command](...args); } catch (err) { sendState(String(err.message || err)); }
   });
-  window.addEventListener("click", (event) => {
+  play.addEventListener("pointerdown", (event) => {
     if (event.shiftKey && state.sticker) {
       const rect = play.getBoundingClientRect();
       window.__placeSticker(state.sticker, event.clientX - rect.left, event.clientY - rect.top);
@@ -1499,11 +1515,16 @@ function setStatus(text, kind) {
 function buildWrappedUserCode(raw) {
   let wrapped = raw;
 
-  const usedSteps = /let\s+steps\s*=/.test(raw) && /moveRight\s*\(\s*steps\s*\)/.test(raw);
+  const usedSteps = /(?:let|const)\s+steps\s*=/.test(raw) && /moveRight\s*\(\s*steps\s*\)/.test(raw);
   const hasJumpDef = /function\s+jump\s*\(/.test(raw);
   const callsJump = /jump\s*\(\s*\)\s*;/.test(raw);
 
   const flags = [];
+  const variableNames = Array.from(raw.matchAll(/(?:let|const|var)\s+([A-Za-z_$][\w$]*)\s*=/g), match => match[1]);
+  if (variableNames.some(name => new RegExp('say\\s*\\([^)]*\\b' + name + '\\b').test(raw))) flags.push('state.usedGreetingVariable = true;');
+  if (/function\s+square\s*\(/.test(raw) && /square\s*\(\s*\)\s*;/.test(raw)) flags.push('state.calledSquareFunction = true;');
+  if (/function\s+dance\s*\(/.test(raw) && (raw.match(/dance\s*\(\s*\)\s*;/g)||[]).length>=2) flags.push('state.calledDanceFunction = true;');
+  if (/\bif\s*\(/.test(raw) && /\belse\b/.test(raw)) flags.push('state.usedIfElse = true;');
   if (usedSteps) flags.push("state.usedVariableSteps = true;");
   if (hasJumpDef && callsJump) flags.push("state.calledJumpFunction = true;");
 
@@ -1533,7 +1554,7 @@ function getLevelsWithEdits(packId){
   const edited = base.map((lvl, idx) => {
     const e = edits[String(idx)];
     if (!e) return lvl;
-    return { ...lvl, story: e.story ?? lvl.story, objective: e.objective ?? lvl.objective, hint: e.hint ?? lvl.hint };
+    return { ...lvl, story: e.story ?? lvl.story, objective: e.objective ?? lvl.objective, hint: e.hint ?? lvl.hint, lessonEdits:e };
   });
 
   const custom = getCustomLevels(packId).map((c) => ({
@@ -1544,6 +1565,10 @@ function getLevelsWithEdits(packId){
     starter: c.starter,
     validate: buildCustomValidate(c.checkRule)
   }));
+  custom.forEach((level,index) => {
+    const edit = edits[String(base.length + index)];
+    if (edit) Object.assign(level, {story:edit.story ?? level.story, objective:edit.objective ?? level.objective, hint:edit.hint ?? level.hint});
+  });
 
   return [...edited, ...custom];
 }
@@ -1680,8 +1705,7 @@ themeSelect.addEventListener("change", () => {
   saveState({ theme: name });
   writeActiveProfile({ theme: name });
   applyTheme(name);
-  // reload iframe for the theme to affect it (uses CSS vars)
-  runCode();
+  // Theme changes update the stage without executing or grading the child’s code.
 });
 
 agePackSelect.addEventListener("change", () => {
@@ -1768,6 +1792,8 @@ function initFromStorage(){
   const prog = getPackProgress(packId);
   const start = Math.max(0, Math.min((prog.maxLevelCompleted ?? -1) + 1, getLevelsWithEdits(packId).length - 1));
   loadLevel(start);
+  updateProfileIdentity();
+  applyLanguage();
 }
 
 window.addEventListener("DOMContentLoaded", () => { initFromStorage(); renderStory(); });
@@ -1808,16 +1834,6 @@ function renderMiniGames(){
     });
   });
 
-  const custom = getCustomLevels(packId).map((c) => ({
-    title: c.title,
-    story: c.story,
-    objective: c.objective,
-    hint: c.hint,
-    starter: c.starter,
-    validate: buildCustomValidate(c.checkRule)
-  }));
-
-  return [...edited, ...custom];
 }
 
 function runMiniGameStarCatch(){
@@ -1992,6 +2008,10 @@ clearCustomLevelsBtn.addEventListener("click", () => {
   if (!confirm("Clear all custom levels for this age pack on this device?")) return;
   const packId = agePackSelect.value;
   setCustomLevels(packId, []);
+  const profile = readActiveProfile();
+  const editsByPack = { ...(profile.editsByPack || {}) };
+  editsByPack[packId] = Object.fromEntries(Object.entries(editsByPack[packId] || {}).filter(([index]) => Number(index) < getPack(packId).length));
+  writeActiveProfile({editsByPack});
   alert("Custom levels cleared.");
   loadLevel(0);
 });
@@ -2000,7 +2020,16 @@ clearCustomLevelsBtn.addEventListener("click", () => {
 // ---------------------- Insert Buttons (Young Learners) ----------------------
 insertRow.querySelectorAll("[data-insert]").forEach(btn => {
   btn.addEventListener("click", () => {
-    const text = btn.getAttribute("data-insert");
+    if (agePackSelect.value === '4-5') {
+      const types = ['say','color','right','star','stars3'];
+      const index = Array.from(insertRow.querySelectorAll('[data-insert]')).indexOf(btn);
+      const block = defaultBlock(types[index]);
+      if (block.type === 'right') block.px = 80;
+      blocksProgram.push(block);
+      renderBlocksWorkspace();
+      return;
+    }
+    const text = btn.getAttribute("data-insert").replace(/\\+n/g, '\n');
     const current = codeBox.value || "";
     codeBox.value = current + (current.endsWith("\n") || current.length===0 ? "" : "\n") + text + "\n";
     playSound("click");
@@ -2042,7 +2071,7 @@ stickerNote.addEventListener("click", () => {
   showModal(albumModal);
 });
 
-[miniGamesModal, certificateModal, albumModal].forEach(m => {
+document.querySelectorAll('.modal').forEach(m => {
   m.addEventListener("click", (e) => {
     if (e.target === m) hideModal(m);
   });
@@ -2071,12 +2100,12 @@ function defaultBlock(type){
 }
 
 function blockToCode(b){
-  if (b.type === "say") return `say(${JSON.stringify(String(b.text||"Hello!"))});`;
+  if (b.type === "say") return `say(${JSON.stringify(String(b.text ?? "Hello!"))});`;
   if (b.type === "color") return `setColor(${JSON.stringify(String(b.color||"pink"))});`;
-  if (b.type === "right") return `moveRight(${Number(b.px)||80});`;
-  if (b.type === "left") return `moveLeft(${Number(b.px)||80});`;
-  if (b.type === "up") return `moveUp(${Number(b.px)||60});`;
-  if (b.type === "down") return `moveDown(${Number(b.px)||60});`;
+  if (b.type === "right") return `moveRight(${Number.isFinite(Number(b.px)) ? Number(b.px) : 80});`;
+  if (b.type === "left") return `moveLeft(${Number.isFinite(Number(b.px)) ? Number(b.px) : 80});`;
+  if (b.type === "up") return `moveUp(${Number.isFinite(Number(b.px)) ? Number(b.px) : 60});`;
+  if (b.type === "down") return `moveDown(${Number.isFinite(Number(b.px)) ? Number(b.px) : 60});`;
   if (b.type === "size") return `setSize(${Number(b.px) || 140});`;
   if (b.type === "star") return `addStar();`;
   if (b.type === "stars3") return `repeat(3, () => { addStar(); });`;
@@ -2102,7 +2131,11 @@ function renderBlocksPalette(){
       </div>
       <div class="tinyNote">drag / tap</div>
     `;
-    el.addEventListener("dragstart", () => { draggingBlockType = def.type; });
+    el.addEventListener("dragstart", (event) => {
+      draggingBlockType = def.type;
+      event.dataTransfer.setData('application/x-starbyte-block', def.type);
+      event.dataTransfer.effectAllowed = 'copy';
+    });
     el.addEventListener("click", () => {
       // tap to add
       blocksProgram.push(defaultBlock(def.type));
@@ -2182,8 +2215,9 @@ blocksWorkspace.addEventListener("dragleave", () => blocksWorkspace.classList.re
 blocksWorkspace.addEventListener("drop", (e) => {
   blocksWorkspace.classList.remove("snapReady");
   e.preventDefault();
-  if (!draggingBlockType) return;
-  blocksProgram.push(defaultBlock(draggingBlockType));
+  const type = e.dataTransfer.getData('application/x-starbyte-block') || draggingBlockType;
+  if (!BLOCK_DEFS.some(block => block.type === type)) return;
+  blocksProgram.push(defaultBlock(type));
   draggingBlockType = null;
   renderBlocksWorkspace();
   playSound("click");
@@ -2354,7 +2388,8 @@ function loadProfile(profileId){
 function saveProfile(profileId, data){
   try{
     localStorage.setItem(getProfileKey(profileId), JSON.stringify(data));
-  }catch{}
+    return true;
+  }catch{ return false; }
 }
 
 
@@ -2369,6 +2404,10 @@ function ensureDefaultProfile(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
   }
   // Ensure per-profile storage exists by cloning global into profile on first run
+  if (!profilesById[st.activeProfileId]) {
+    st = { ...st, activeProfileId:"default" };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+  }
   const pid = st.activeProfileId || "default";
   if (!loadProfile(pid)){
     // Create a clean per-profile state bucket
@@ -2457,7 +2496,7 @@ function applyWorldToUI(){
 
 function renderStory(){
   const p = readActiveProfile();
-  const on = (p.storyOn !== false) && (loadState().storyOn !== false);
+  const on = p.storyOn !== false;
   if (!storyText) return;
   if (!storyToggle) return;
 
@@ -2488,6 +2527,40 @@ storyToggle?.addEventListener("click", () => {
 });
 
 
+function updateProfileIdentity(){
+  const st = loadState();
+  const meta = st.profilesById?.[st.activeProfileId || "default"];
+  const name = meta?.name || "Default";
+  if (profilesBtn) {
+    profilesBtn.textContent = `👤 ${name}`;
+    profilesBtn.title = `Playing as ${name}. Choose a different player.`;
+    profilesBtn.setAttribute("aria-label", `Playing as ${name}. Choose player`);
+  }
+  const eyebrow = document.querySelector('.questBanner .eyebrow');
+  if (eyebrow) eyebrow.textContent = `${name}’s coding adventure`;
+}
+
+function chooseProfile(id){
+  const st = loadState();
+  if (!st.profilesById?.[id]) return false;
+  try {
+    saveState({ activeProfileId:id });
+    selectedStickerId = null;
+    makerProgram = [];
+    initFromStorage();
+    renderProfiles();
+    hideModal(profilesModal);
+    const name = st.profilesById[id].name;
+    setStatus(`Playing as ${name}. Read the mini-lesson, then try your own idea.`, "neutral");
+    profilesBtn.focus();
+    playSound("open");
+    return true;
+  } catch (error) {
+    $("profileMessage").textContent = "Your browser could not save this player. Check that storage is allowed, then try again.";
+    return false;
+  }
+}
+
 function renderProfiles(){
   const st = loadState();
   const profilesById = st.profilesById || {};
@@ -2498,57 +2571,52 @@ function renderProfiles(){
     card.className = "dashCard";
     const prof = loadProfile(p.id) || {};
     const stars = prof.progressStars || 0;
-    card.innerHTML = `<h4>${p.name} ${p.id===active ? "✅" : ""}</h4>
+    card.innerHTML = `<h4></h4>
       <div class="dashRow"><span>Stars</span><b>${stars}⭐</b></div>
       <div class="dashRow"><span>World</span><b>${(WORLDS.find(w=>w.id==(prof.worldId||"candy"))||WORLDS[0]).emoji}</b></div>
       <div class="controls" style="margin-top:10px;">
-        <button class="btn small" data-switch="${p.id}">Use</button>
+        <button class="btn small" data-switch="${p.id}" aria-pressed="${p.id===active}"></button>
       </div>`;
+    card.querySelector('h4').textContent = `${p.name} ${p.id===active ? "✅" : ""}`;
+    card.querySelector('button').textContent = p.id===active ? `Continue as ${p.name}` : `Play as ${p.name}`;
     profilesGrid.appendChild(card);
   });
   profilesGrid.querySelectorAll("[data-switch]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-switch");
-      saveState({ activeProfileId: id });
-      ensureDefaultProfile();
-      // Load this child’s saved pack and progress.
-      initFromStorage();
-      const prof = readActiveProfile();
-      themeSelect.value = prof.theme || themeSelect.value;
-      stickerPackSelect.value = prof.stickerPack || stickerPackSelect.value;
-      applyTheme(themeSelect.value);
-      renderStickers(); renderAlbum(); renderDashboard(); renderStory();
-  try{ maybeUnlockTrophies(true); }catch{}
-      loadLevel( Math.max(0, Math.min(currentLevel, getLevelsWithEdits(agePackSelect.value).length-1)) );
-      hideModal(profilesModal);
-      playSound("success");
-  try{ maybeUnlockTrophies(true); }catch{}
-
+      chooseProfile(id);
     });
   });
 }
 
-profilesBtn?.addEventListener("click", () => { ensureDefaultProfile(); renderProfiles(); showModal(profilesModal); });
+profilesBtn?.addEventListener("click", () => {
+  ensureDefaultProfile();
+  $("profileMessage").textContent = "Choose a player to continue their own adventure.";
+  renderProfiles(); showModal(profilesModal);
+});
 closeProfilesBtn?.addEventListener("click", () => hideModal(profilesModal));
 
 addProfileBtn?.addEventListener("click", () => {
-  const name = (newProfileName.value || "").trim();
-  if (!name) return alert("Type a name first.");
+  const name = (newProfileName.value || "").trim().slice(0,32);
+  if (!name) { $("profileMessage").textContent = "Type a player’s name first."; newProfileName.focus(); return; }
   const id = "p_" + Math.random().toString(36).slice(2,8);
   const st = loadState();
   const profilesById = { ...(st.profilesById || {}) };
   profilesById[id] = { id, name, createdAt: Date.now() };
-  saveState({ profilesById });
   // create fresh profile bucket
-  saveProfile(id, {
+  const saved = saveProfile(id, {
+    agePack: $("newProfileAge").value,
     progressByPack: {}, progressStars: 0, editsByPack: {}, customLevelsByPack: {}, skillsByPack: {},
     stickerPack: "mix", theme: "candy", worldId: "candy", storyOn: true, historyLog: [], avatar:{ base:"🙂", hat:"", pet:"" }
   });
+  if (!saved) { $("profileMessage").textContent = "Your browser could not save this player. Check that storage is allowed."; return; }
+  try { saveState({ profilesById }); }
+  catch { $("profileMessage").textContent = "Could not save the player list. Check browser storage and try again."; return; }
   newProfileName.value = "";
-  renderProfiles();
-  playSound("success");
-  try{ maybeUnlockTrophies(true); }catch{}
-
+  chooseProfile(id);
+});
+newProfileName?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); addProfileBtn.click(); }
 });
 
 
@@ -2875,6 +2943,10 @@ function buildSharePayload(){
   return payload;
 }
 function applySharePayload(payload){
+  if (!payload || payload.v !== 1 || !['4-5','6-7','7-8','9-10'].includes(payload.packId)) throw Error('Invalid shared creation');
+  if (payload.mode !== 'blocks' && payload.mode !== 'code') throw Error('Invalid shared mode');
+  if (payload.mode === 'blocks' && (!Array.isArray(payload.blocks) || payload.blocks.length > 100 || payload.blocks.some(block => !block || !BLOCK_DEFS.some(def => def.type === block.type)))) throw Error('Invalid shared blocks');
+  if (payload.mode === 'code' && (typeof payload.code !== 'string' || payload.code.length > 8000)) throw Error('Invalid shared code');
   ensureDefaultProfile();
   // apply into active profile
   const st = loadState();
@@ -2883,7 +2955,7 @@ function applySharePayload(payload){
   agePackSelect.value = payload.packId || agePackSelect.value;
   // world/theme/stickers
   saveState({ worldId: payload.worldId || st.worldId, theme: payload.theme || st.theme, stickerPack: payload.stickerPack || st.stickerPack, storyOn: payload.storyOn !== false });
-  writeActiveProfile({ worldId: payload.worldId || (p.worldId||"candy"), theme: payload.theme || (p.theme||"candy"), stickerPack: payload.stickerPack || (p.stickerPack||"mix"), storyOn: payload.storyOn !== false, avatar: payload.avatar || p.avatar });
+  writeActiveProfile({ agePack:payload.packId, worldId: payload.worldId || (p.worldId||"candy"), theme: payload.theme || (p.theme||"candy"), stickerPack: payload.stickerPack || (p.stickerPack||"mix"), storyOn: payload.storyOn !== false, avatar: payload.avatar || p.avatar });
   themeSelect.value = payload.theme || themeSelect.value;
   stickerPackSelect.value = payload.stickerPack || stickerPackSelect.value;
   applyTheme(themeSelect.value);
@@ -2946,18 +3018,22 @@ importLinkBtn?.addEventListener("click", () => {
 });
 
 // auto-import from URL hash
-(function autoImportFromHash(){
+function autoImportFromHash(){
   try{
     const h = location.hash || "";
     if (!h.startsWith("#share=")) return;
     const token = h.slice(7);
     const payload = b64d(token);
     applySharePayload(payload);
+    hideHome();
+    hideModal(shareModal);
     // clean hash (optional)
     history.replaceState(null, "", location.pathname + location.search);
     setStatus("Loaded a shared creation! 🎉", "good");
   }catch{}
-})();
+}
+window.addEventListener('DOMContentLoaded', autoImportFromHash);
+window.addEventListener('hashchange', autoImportFromHash);
 
 
 // ---------------------- Mini-game Maker (Blocks) ----------------------
@@ -2980,7 +3056,11 @@ function renderMaker(){
     el.setAttribute("draggable", "true");
     el.setAttribute("data-type", def.type);
     el.innerHTML = `<div class="left"><div class="icon">${def.icon}</div><div>${def.label}</div></div><div class="tinyNote">drag / tap</div>`;
-    el.addEventListener("dragstart", () => { draggingBlockType = def.type; });
+    el.addEventListener("dragstart", (event) => {
+      draggingBlockType = def.type;
+      event.dataTransfer.setData('application/x-starbyte-maker-block', def.type);
+      event.dataTransfer.effectAllowed = 'copy';
+    });
     el.addEventListener("click", () => { makerProgram.push({ type:def.type, ...Object.fromEntries((def.fields || []).map(f => [f.k, f.default])) }); renderMakerWorkspace(); playSound("click"); });
     makerPalette.appendChild(el);
   });
@@ -3027,7 +3107,8 @@ makerWorkspace.addEventListener("drop", (e) => {
   e.preventDefault();
   makerWorkspace.classList.remove("snapReady");
   if (!draggingBlockType) return;
-  const def = MAKER_BLOCKS.find(b => b.type === draggingBlockType);
+  const type = e.dataTransfer.getData('application/x-starbyte-maker-block') || draggingBlockType;
+  const def = MAKER_BLOCKS.find(b => b.type === type);
   if (!def) return;
   makerProgram.push({ type:def.type, ...Object.fromEntries((def.fields || []).map(f => [f.k, f.default])) });
   draggingBlockType = null;
@@ -3050,7 +3131,7 @@ function makerToCode(){
 
 function runMaker(){
   // apply friendly script + start mini-game
-  const kind = makerKind.value;
+  const kind = makerKind.value.toLowerCase();
   const seconds = Math.max(10, Math.min(90, Number(makerSeconds.value)||30));
   const goal = Math.max(1, Math.min(50, Number(makerGoal.value)||10));
   const intro = makerToCode();
@@ -3131,6 +3212,7 @@ function confetti(n=60){
 
 function renderTrophies(){
   maybeUnlockTrophies(false);
+  updateTrophyCertButton();
   const ts = getTrophyState();
   trophiesGrid.innerHTML = "";
   TROPHIES.forEach(t => {
@@ -3151,260 +3233,33 @@ closeTrophiesBtn?.addEventListener("click", () => hideModal(trophiesModal));
    Based on the well-known qrcode-generator project by Kazuhiko Arase (MIT License).
    This is a trimmed helper to render a QR for URLs (Byte mode). */
 function makeQR(text){
-  // Minimal QR using an embedded tiny library:
-  // We'll use a small implementation from qrcode-generator style API (qrcode(typeNumber, errorCorrectionLevel))
-  // Included below as `QRCodeMini`.
-  const qr = QRCodeMini(0, 'M'); // auto type
-  qr.addData(text);
-  qr.make();
-  return qr;
+  const qr = qrcodegen.QrCode.encodeText(String(text), qrcodegen.QrCode.Ecc.MEDIUM);
+  return { getModuleCount: () => qr.size, isDark: (row, col) => qr.getModule(col, row) };
 }
 function drawQRToCanvas(canvas, text){
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const qr = makeQR(text);
+  const help = document.querySelector('.qrHelp');
+  let qr;
+  try { qr = makeQR(text); }
+  catch {
+    canvas.hidden = true;
+    if (help) help.textContent = 'This creation is too large for a QR code. Copy the share link instead.';
+    return false;
+  }
+  canvas.hidden = false;
+  if (help) help.textContent = 'Scan this code to open the creation, or copy the share link.';
   const count = qr.getModuleCount();
-  const size = canvas.width;
-  const cell = Math.floor(size / count);
-  ctx.clearRect(0,0,size,size);
-  // white background
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0,0,size,size);
-  ctx.fillStyle = "#000";
-  for (let r=0;r<count;r++){
-    for (let c=0;c<count;c++){
-      if (qr.isDark(r,c)){
-        ctx.fillRect(c*cell, r*cell, cell, cell);
-      }
-    }
+  const border = 4;
+  canvas.width = canvas.height = Math.max(220, (count + border * 2) * 4);
+  const ctx = canvas.getContext('2d');
+  const cell = Math.floor(canvas.width / (count + border * 2));
+  const offset = Math.floor((canvas.width - count * cell) / 2);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000';
+  for (let row=0; row<count; row++) for (let col=0; col<count; col++) {
+    if (qr.isDark(row,col)) ctx.fillRect(offset + col*cell, offset + row*cell, cell, cell);
   }
 }
-
-// Tiny QR library (trimmed). Not a full featured implementation, but enough for short/medium URLs.
-function QRCodeMini(typeNumber, errorCorrectionLevel){
-  // --- trimmed qrcode-generator core ---
-  const PAD0 = 0xEC, PAD1 = 0x11;
-  const _ecl = ({L:1,M:0,Q:3,H:2})[errorCorrectionLevel] ?? 0;
-  let _type = typeNumber;
-  let _modules = null;
-  let _moduleCount = 0;
-  let _dataCache = null;
-  const _dataList = [];
-
-  function QR8bitByte(data){ this.mode = 4; this.data = data; this.getLength = () => this.data.length; this.write = (buffer) => {
-      for (let i=0;i<this.data.length;i++) buffer.put(this.data.charCodeAt(i), 8);
-  };}
-
-  function BitBuffer(){ this.buffer=[]; this.length=0; this.put = (num, length) => {
-      for (let i=0;i<length;i++) this.putBit(((num >>> (length-i-1)) & 1) == 1);
-  }; this.putBit = (bit) => {
-      const bufIndex = Math.floor(this.length / 8);
-      if (this.buffer.length <= bufIndex) this.buffer.push(0);
-      if (bit) this.buffer[bufIndex] |= (0x80 >>> (this.length % 8));
-      this.length++;
-  }; this.get = (index) => ((this.buffer[Math.floor(index/8)] >>> (7 - (index%8))) & 1) == 1; }
-
-  function getBCHDigit(data){ let digit=0; while (data != 0){ digit++; data >>>= 1; } return digit; }
-  function getBCHTypeInfo(data){
-    let d = data << 10;
-    const g = 0b10100110111;
-    while (getBCHDigit(d) - getBCHDigit(g) >= 0) d ^= (g << (getBCHDigit(d) - getBCHDigit(g)));
-    return ((data << 10) | d) ^ 0b101010000010010;
-  }
-  function getPatternPosition(typeNumber){
-    const table = [
-      [],
-      [6,18],[6,22],[6,26],[6,30],[6,34],
-      [6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54]
-    ];
-    return table[typeNumber] || [6, 18];
-  }
-  function getMask(maskPattern, i, j){
-    switch(maskPattern){
-      case 0: return (i + j) % 2 == 0;
-      case 1: return i % 2 == 0;
-      case 2: return j % 3 == 0;
-      case 3: return (i + j) % 3 == 0;
-      default: return (i + j) % 2 == 0;
-    }
-  }
-
-  function getRSBlocks(typeNumber, errorCorrectionLevel){
-    // Only versions 1-10 table subset (M only enough). We'll use a minimal map for M.
-    // Format: [count,totalCount,dataCount]
-    const RS = {
-      "1M":[[1,26,16]],
-      "2M":[[1,44,28]],
-      "3M":[[1,70,44]],
-      "4M":[[2,50,32]],
-      "5M":[[2,67,43]],
-      "6M":[[4,43,27]],
-      "7M":[[4,49,31]],
-      "8M":[[2,60,38],[2,61,39]],
-      "9M":[[3,58,36],[2,59,37]],
-      "10M":[[4,69,43],[1,70,44]],
-    };
-    const key = `${typeNumber}${errorCorrectionLevel}`;
-    const list = RS[key];
-    if (!list) return RS["1M"];
-    return list.map(b => ({count:b[0], totalCount:b[1], dataCount:b[2]}));
-  }
-
-  function getLengthInBits(mode, type){
-    if (type >= 1 && type < 10) return mode == 4 ? 8 : 8;
-    if (type < 27) return 16;
-    return 16;
-  }
-
-  function createData(typeNumber, errorCorrectionLevel, dataList){
-    const rsBlocks = getRSBlocks(typeNumber, errorCorrectionLevel);
-    const buffer = new BitBuffer();
-    for (let i=0;i<dataList.length;i++){
-      const data = dataList[i];
-      buffer.put(data.mode, 4);
-      buffer.put(data.getLength(), getLengthInBits(data.mode, typeNumber));
-      data.write(buffer);
-    }
-    let totalDataCount = 0;
-    for (let i=0;i<rsBlocks.length;i++) totalDataCount += rsBlocks[i].dataCount * rsBlocks[i].count;
-    // terminator
-    if (buffer.length + 4 <= totalDataCount * 8) buffer.put(0, 4);
-    while (buffer.length % 8 != 0) buffer.putBit(false);
-    // padding
-    while (buffer.buffer.length < totalDataCount){
-      buffer.put(PAD0, 8);
-      if (buffer.buffer.length >= totalDataCount) break;
-      buffer.put(PAD1, 8);
-    }
-    return buffer.buffer;
-  }
-
-  function setupPositionProbePattern(row, col){
-    for (let r=-1;r<=7;r++){
-      if (row + r <= -1 || _moduleCount <= row + r) continue;
-      for (let c=-1;c<=7;c++){
-        if (col + c <= -1 || _moduleCount <= col + c) continue;
-        if ((0 <= r && r <= 6 && (c == 0 || c == 6)) ||
-            (0 <= c && c <= 6 && (r == 0 || r == 6)) ||
-            (2 <= r && r <= 4 && 2 <= c && c <= 4)) {
-          _modules[row + r][col + c] = true;
-        } else {
-          _modules[row + r][col + c] = false;
-        }
-      }
-    }
-  }
-
-  function setupTimingPattern(){
-    for (let i=8;i<_moduleCount-8;i++){
-      if (_modules[i][6] !== null) continue;
-      _modules[i][6] = i % 2 == 0;
-      if (_modules[6][i] !== null) continue;
-      _modules[6][i] = i % 2 == 0;
-    }
-  }
-
-  function setupPositionAdjustPattern(){
-    const pos = getPatternPosition(_type);
-    for (let i=0;i<pos.length;i++){
-      for (let j=0;j<pos.length;j++){
-        const row = pos[i], col = pos[j];
-        if (_modules[row][col] !== null) continue;
-        for (let r=-2;r<=2;r++){
-          for (let c=-2;c<=2;c++){
-            if (r==-2 || r==2 || c==-2 || c==2 || (r==0 && c==0)) _modules[row+r][col+c] = true;
-            else _modules[row+r][col+c] = false;
-          }
-        }
-      }
-    }
-  }
-
-  function setupTypeInfo(maskPattern){
-    const data = (_ecl << 3) | maskPattern;
-    const bits = getBCHTypeInfo(data);
-    for (let i=0;i<15;i++){
-      const mod = ((bits >> i) & 1) == 1;
-      // vertical
-      if (i < 6) _modules[i][8] = mod;
-      else if (i < 8) _modules[i + 1][8] = mod;
-      else _modules[_moduleCount - 15 + i][8] = mod;
-      // horizontal
-      if (i < 8) _modules[8][_moduleCount - i - 1] = mod;
-      else if (i < 9) _modules[8][15 - i - 1 + 1] = mod;
-      else _modules[8][15 - i - 1] = mod;
-    }
-    _modules[_moduleCount - 8][8] = true;
-  }
-
-  function mapData(data, maskPattern){
-    let inc = -1;
-    let row = _moduleCount - 1;
-    let bitIndex = 0;
-    let byteIndex = 0;
-    for (let col = _moduleCount - 1; col > 0; col -= 2){
-      if (col == 6) col--;
-      while (true){
-        for (let c=0;c<2;c++){
-          if (_modules[row][col - c] === null){
-            let dark = false;
-            if (byteIndex < data.length){
-              dark = (((data[byteIndex] >>> (7 - bitIndex)) & 1) == 1);
-            }
-            const mask = getMask(maskPattern, row, col - c);
-            _modules[row][col - c] = mask ? !dark : dark;
-            bitIndex++;
-            if (bitIndex == 8){ byteIndex++; bitIndex = 0; }
-          }
-        }
-        row += inc;
-        if (row < 0 || _moduleCount <= row){
-          row -= inc;
-          inc = -inc;
-          break;
-        }
-      }
-    }
-  }
-
-  function makeImpl(test, maskPattern){
-    _moduleCount = _type * 4 + 17;
-    _modules = new Array(_moduleCount);
-    for (let r=0;r<_moduleCount;r++){
-      _modules[r] = new Array(_moduleCount);
-      for (let c=0;c<_moduleCount;c++) _modules[r][c] = null;
-    }
-    setupPositionProbePattern(0,0);
-    setupPositionProbePattern(_moduleCount - 7, 0);
-    setupPositionProbePattern(0, _moduleCount - 7);
-    setupTimingPattern();
-    setupPositionAdjustPattern();
-    setupTypeInfo(maskPattern);
-    if (_dataCache == null) _dataCache = createData(_type, 'M', _dataList);
-    mapData(_dataCache, maskPattern);
-  }
-
-  function bestType(){
-    // pick type 1..10 that fits
-    for (let t=1;t<=10;t++){
-      const rsBlocks = getRSBlocks(t, 'M');
-      let totalDataCount = 0;
-      for (let i=0;i<rsBlocks.length;i++) totalDataCount += rsBlocks[i].dataCount * rsBlocks[i].count;
-      // rough capacity in bytes for byte mode: totalDataCount - 2
-      if (_dataList.reduce((a,d)=>a+d.getLength(),0) <= (totalDataCount - 2)) return t;
-    }
-    return 10;
-  }
-
-  return {
-    addData(data){ _dataList.push(new QR8bitByte(data)); _dataCache = null; },
-    make(){ if (_type < 1) _type = bestType(); makeImpl(false, 0); },
-    isDark(r,c){ return _modules[r][c]; },
-    getModuleCount(){ return _moduleCount; }
-  };
-}
-
-
 function trophyMilestoneLabel(count){
   const total = TROPHIES.length;
   if (count >= total) return { title: "Trophy Master", emoji:"🏆", line:`Unlocked all ${total} trophies!` };
@@ -3594,15 +3449,18 @@ function renderLessons(){
 
   lessonGrid.querySelectorAll("[data-jump]").forEach(btn => {
     btn.addEventListener("click", () => {
-      // Lightly map lessons to packs
       const i = Number(btn.getAttribute("data-jump")||0);
-      if (i===0) agePackSelect.value = "4-5";
-      else if (i===1) agePackSelect.value = "6-7";
-      else if (i===2 || i===3) agePackSelect.value = "7-8";
-      else agePackSelect.value = "9-10";
-      updateModeForPack();
-      loadLevel(0);
+      const route = [
+        {pack:'4-5',level:0}, {pack:'6-7',level:0},
+        {pack:'7-8',level:5}, {pack:'7-8',level:6},
+        {pack:'9-10',level:0}, {pack:'9-10',level:0,maker:true}
+      ][i];
+      if (!route) return;
+      agePackSelect.value = route.pack;
+      writeActiveProfile({agePack:route.pack});
+      loadLevel(route.level);
       hideModal(teacherModal);
+      if (route.maker) { renderMaker(); showModal(makerModal); }
       setStatus("Lesson started! Try the mission on the left.", "good");
       playSound("success");
     });
@@ -3805,6 +3663,10 @@ function setFocusMode(on){
 }
 function updateFocusUI(){
   const on = isFocusMode();
+  if (pinInput) pinInput.disabled = on;
+  if (setPinBtn) setPinBtn.disabled = on;
+  if (mathGateToggle) mathGateToggle.disabled = on;
+  if (mathGateUnlockBtn) mathGateUnlockBtn.disabled = !on || !!getPinHash() || !isMathGateEnabled();
   if (toggleFocusBtn) toggleFocusBtn.textContent = on ? "Turn Focus Mode Off" : "Turn Focus Mode On";
   if (lockBtn) lockBtn.textContent = on ? "Locked 🔒" : "Lock 🔒";
   // In focus mode, also disable some things like link navigation by default
@@ -3822,6 +3684,7 @@ lockBtn?.addEventListener("click", openLockModal);
 closeLockBtn?.addEventListener("click", () => hideModal(lockModal));
 
 setPinBtn?.addEventListener("click", () => {
+  if (isFocusMode()) return;
   const pin = (pinInput?.value || "").trim();
   if (!/^\d{4}$/.test(pin)) return alert("Please enter exactly 4 digits.");
   setPin(pin);
@@ -3928,6 +3791,7 @@ function syncMathGateUI(){
 syncMathGateUI();
 
 mathGateToggle?.addEventListener("change", () => {
+  if (isFocusMode()) { syncMathGateUI(); return; }
   setMathGateEnabled(!!mathGateToggle.checked);
   playSound("click");
 });
@@ -3956,6 +3820,7 @@ function mathQuestion(){
 }
 
 function unlockWithMath(){
+  if (!isFocusMode() || getPinHash() || !isMathGateEnabled()) return;
   const { q, ans } = mathQuestion();
   const resp = prompt(`Parent Unlock (Math Gate)\n\nWhat is ${q} ?`);
   if (resp === null) return;

@@ -79,7 +79,9 @@ function getLessonGuide(pack, index, level){
   const entry = LESSON_PATHS[pack]?.[index];
   if (!entry) return { goal:level.objective, teaching:level.story, topics:[], hints:['Read the mission and plan one action at a time.', 'Run a small part of your idea, then add the next action.', level.hint || 'Ask a grown-up to help you think through the next step.'] };
   const topics = entry[1].map(id => LESSON_TOPICS[id]);
-  return { goal:entry[0], topics:entry[1], teaching:topics.map(topic => topic.teach).join(' '), hints:[0,1,2].map(step => topics.map(topic => topic.hints[step]).join(' ')) };
+  const hints = [0,1,2].map(step => topics.map(topic => topic.hints[step]).join(' '));
+  if (level.lessonEdits?.hint) hints[0] = level.lessonEdits.hint;
+  return { goal:level.lessonEdits?.objective ?? entry[0], topics:entry[1], teaching:topics.map(topic => topic.teach).join(' '), hints };
 }
 let lessonPractice = { attempts:0, hintStep:0 };
 function renderLessonTeaching(level){
@@ -130,7 +132,7 @@ function recordLessonAttempt(run){
 
 function lessonFeedback(state, guide){
   const observations = [];
-  if (guide.topics.includes('talk')) observations.push(`Your hero said ${state.messages?.length || 0} message(s).`);
+  if (guide.topics.includes('talk')) observations.push(`Your hero said ${state.messages?.filter(message=>message.trim()).length || 0} message(s) with words.`);
   if (guide.topics.includes('stars') || guide.topics.includes('loop')) observations.push(`Your program made ${state.stars || 0} star(s).`);
   if (guide.topics.includes('move')) observations.push(`Your hero finished at X ${state.x}, Y ${state.y}.`);
   if (guide.topics.includes('size')) observations.push(`Your hero’s size is ${state.size}.`);

@@ -350,7 +350,7 @@
           <label class="ctrlLabel" for="newLevelHint">Hint</label>
           <textarea id="newLevelHint" class="textarea" placeholder="A helpful tip..."></textarea>
 
-          <label class="ctrlLabel" for="newLevelStarter">Starter code</label>
+          <label class="ctrlLabel" for="newLevelStarter">Reference solution (parent only; never prefilled for the child)</label>
           <textarea id="newLevelStarter" class="textarea" placeholder='say("Hello!");'></textarea>
 
           <label class="ctrlLabel" for="newLevelCheck">Check rule</label>
@@ -474,17 +474,24 @@
     <div class="modalCard">
       <div class="modalHeader">
         <div>
-          <div class="modalTitle">Profiles</div>
+          <div class="modalTitle">Who’s playing?</div>
           <div class="tinyNote">Separate progress for siblings (saved locally on this device).</div>
         </div>
         <button class="btn small" id="closeProfilesBtn">Close ✕</button>
       </div>
       <div class="controls">
-        <input id="newProfileName" class="input" placeholder="New profile name (e.g., Mia)" />
-        <button id="addProfileBtn" class="btn success">Add Profile</button>
+        <label class="profileField">Player name<input id="newProfileName" class="input" maxlength="32" autocomplete="off" placeholder="e.g. Mia" /></label>
+        <label class="profileField">Starting pack<select id="newProfileAge" class="select">
+          <option value="4-5">Ages 4–5 · Blocks</option>
+          <option value="6-7">Ages 6–7 · First code</option>
+          <option value="7-8" selected>Ages 7–8 · Code explorer</option>
+          <option value="9-10">Ages 9–10 · Challenges</option>
+        </select></label>
+        <button id="addProfileBtn" class="btn success">Add & play →</button>
       </div>
+      <p id="profileMessage" class="tinyNote" role="status" aria-live="polite"></p>
       <div class="dashGrid" id="profilesGrid"></div>
-      <p class="tinyNote">Tip: You can rename/delete profiles in Parent Mode later (future enhancement).</p>
+      <p class="tinyNote">Each player keeps their own pack, stars, world and avatar on this device.</p>
     </div>
   </div>
 
@@ -766,6 +773,7 @@
   </div>
 
 
+  <script src="vendor/qrcodegen.js"></script>
   <script src="ui.js"></script>
   <script src="learning.js"></script>
   <script src="app.js"></script>

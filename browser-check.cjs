@@ -58,7 +58,7 @@ await check('later block clue guides without building answer',`blocksProgram.len
 await evaluate(`blocksProgram=[defaultBlock('size')];runCode()`);await delay(250);
 await check('size lesson can complete',`!nextBtn.disabled`);
 await evaluate(`renderDaily();renderDaily()`);await check('daily check survives storage',`typeof getDaily().picked.check==='function'`);
-await evaluate(`makerKind.value='targettap';makerProgram=[{type:'celebrate'}];runMaker()`);await delay(250);
+await evaluate(`makerKind.value='targetTap';makerProgram=[{type:'celebrate'}];runMaker()`);await delay(250);
 await check('maker runs',`!activeRun.failed`);
 await evaluate(`agePackSelect.value='7-8';loadLevel(6);codeBox.value='onButton("A",()=>say("Wrong action"));';runCode()`);await delay(100);
 await check('wiring alone does not complete button quest',`nextBtn.disabled && lessonPractice.attempts===0`);
@@ -90,6 +90,27 @@ for(let level=0;level<10;level++){
 await call('Emulation.setDeviceMetricsOverride',{width:375,height:740,deviceScaleFactor:1,mobile:true});
 await evaluate(`agePackSelect.value='9-10';loadLevel(1);codeBox.value=getPack('9-10')[1].starter;runCode()`);await delay(200);
 await check('coordinate lesson works on phone',`!nextBtn.disabled`);
+const negativeConcepts = [
+  ['9-10',0,'say("Hi");','Greeting needs a variable'],
+  ['7-8',8,'function jump(){} jump();','Jump function must move'],
+  ['9-10',4,'moveRight(60);moveDown(60);moveLeft(60);moveUp(60);','Square quest needs a function'],
+  ['9-10',6,'randomInt(1,10);','Size rules need the conditional and size'],
+  ['9-10',5,'let n=randomInt(3,8);repeat(n,()=>addStar());','Random game also needs the count message'],
+  ['9-10',8,'moveLeft(20);moveRight(40);moveLeft(20);moveLeft(20);moveRight(40);moveLeft(20);','Dance quest needs its reusable function'],
+  ['6-7',7,'function unused(){let steps=90;moveRight(steps);}','Unused variable code is not executed work'],
+  ['7-8',5,'repeat(0,()=>{});addStar();addStar();addStar();','Stars must actually come from the loop'],
+  ['6-7',9,'randomInt(50,60);addStar();','Random surprise must use the requested range and result'],
+  ['7-8',1,'setColor("not-a-colour");','Invalid CSS colour cannot pass'],
+  ['7-8',0,'say("");say("");say("");','Empty messages are not the three-message exercise'],
+];
+for(const [pack,level,code,name] of negativeConcepts){
+  await evaluate(`agePackSelect.value=${JSON.stringify(pack)};loadLevel(${level});codeBox.value=${JSON.stringify(code)};runCode()`);await delay(100);
+  const value=await evaluate('nextBtn.disabled');results.push({name,value});
+}
+await evaluate(`agePackSelect.value='7-8';loadLevel(0);codeBox.value='parent.document.body.dataset.sandboxEscape="bad";';runCode()`);await delay(100);
+await check('Sandbox prevents parent DOM access',`!document.body.dataset.sandboxEscape && statusBox.textContent.includes('Code error') && nextBtn.disabled`);
+await evaluate(`codeBox.value='repeat(100,()=>addStar());';runCode()`);await delay(100);
+await check('Repeat API bounds large counts',`lastState.stars===40`);
 await check('phone has no horizontal overflow',`document.documentElement.scrollWidth <= innerWidth`);
 await check('child menus replace crowded toolbar',`!!document.querySelector('#settingsMenu #agePackSelect') && !!document.querySelector('#exploreMenu #makerBtn')`);
 await evaluate(`homeBtn.click();tileMake.click()`);await delay(100);
@@ -106,7 +127,8 @@ await evaluate(`hideHome();agePackSelect.value='4-5';loadLevel(0)`);await delay(
 screenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync('ui-phone.png',Buffer.from(screenshot.result.data,'base64'));
 await check('no uncaught browser errors',JSON.stringify(errors.length===0));
 fs.writeFileSync('browser-results.json',JSON.stringify({results,errors},null,2));
+if(results.some(result=>!result.value))throw Error('Regression checks failed; see browser-results.json');
 console.log(JSON.stringify({results,errors},null,2));
 } finally {socket?.close();chrome.kill();server.close();}
 }
-main().catch(e=>{fs.writeFileSync('browser-results.json',String(e.stack));console.error(e);process.exitCode=1;server.close();});
+main().catch(e=>{let report={};try{report=JSON.parse(fs.readFileSync('browser-results.json','utf8'));}catch{}report.failure=String(e.stack);fs.writeFileSync('browser-results.json',JSON.stringify(report,null,2));console.error(e);process.exitCode=1;server.close();});
