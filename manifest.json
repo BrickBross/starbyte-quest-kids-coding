@@ -3,8 +3,8 @@
   "short_name": "Starbyte",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0b1020",
-  "theme_color": "#7cf7ff",
+  "background_color": "#fffdf8",
+  "theme_color": "#6d4aff",
   "description": "A browser-only kid coding adventure (ages 4\u201310).",
   "icons": [
     {

@@ -1,10 +1,12 @@
 // Starbyte Quest Service Worker (offline cache)
-const CACHE = "starbyte-cache-v8";
+const CACHE = "starbyte-cache-v9";
 const ASSETS = [
   "./",
   "./index.html",
   "./about.html",
   "./style.css",
+  "./kids-ui.css",
+  "./ui.js",
   "./app.js",
   "./manifest.json",
   "./icon.svg",
@@ -35,6 +37,8 @@ self.addEventListener("fetch", (event) => {
   const isAppShell = req.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith("/index.html") ||
     url.pathname.endsWith("/app.js") ||
     url.pathname.endsWith("/style.css") ||
+    url.pathname.endsWith("/kids-ui.css") ||
+    url.pathname.endsWith("/ui.js") ||
     url.pathname.endsWith("/manifest.json");
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);

@@ -1,2 +1,4 @@
 .browser-test*/
 browser-results.json
+ui-*.png
+debug.log

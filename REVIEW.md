@@ -1,5 +1,13 @@
 # Game review and repair
 
+## Kids’ interface redesign
+
+The refreshed interface uses a friendly star mascot, matching SVG logo and install icons, and a cream, purple and mint palette. The workspace now follows three visible steps: meet the mission, build an idea, and see it come alive. A single main Run action sits with the program. Hints, generated code and sticker rewards can be opened when wanted; extra activities live under Explore and learning settings under Grown-ups. The data-clearing action is inside Parent Mode.
+
+Home activities launch directly. Block choices support keyboard activation and labelled inputs. Phone layouts stack the workspace, scroll to the game after Run, and provide a next-quest action beside the result. Existing game elements and their event handlers are preserved. New UI assets are included in the offline cache.
+
+The browser suite also verifies direct navigation, logo loading, phone overflow and mode controls, and saves desktop/home/phone screenshots for visual inspection. These checks verify implementation; testing with children would still help refine wording and discoverability.
+
 Starbyte Quest is intended to be a local, child-friendly coding playground: read a short goal, build blocks or edit JavaScript, press Run, see the hero respond, and earn a star for completing a new lesson. Profiles should keep each child’s progress separate. Worlds, stickers and mini-games support that learning loop.
 
 The core problems were functional:
