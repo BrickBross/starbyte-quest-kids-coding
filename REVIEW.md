@@ -1,5 +1,13 @@
 # Game review and repair
 
+## Teach before asking for a solution
+
+Built-in quests now have separate teaching text, plain-language goals and three progressively more specific clues. Typing exercises start empty; blocks start empty with no answer highlighted. Command shapes explain syntax without inserting a completed program. The initial typing quest in packs 6–7 and 7–8 asks for three messages, so the one-message teaching example is a building block rather than the finished exercise.
+
+The clue button never overwrites work. After three unsuccessful runs the game offers guided help, keeps the learner’s program, and leaves the quest incomplete. Feedback describes the observed messages, stars, size or position so the learner can compare the result with the goal. Later block clues can highlight a useful choice without creating the program. Progress requires a valid result; loop lessons require a loop and button lessons require testing the correct action. Finishing unlocks Next quest, leaving the child free to experiment before moving on. Each next quest starts with new teaching and a fresh workspace.
+
+Reference solutions remain in the lesson definitions for regression testing; they are not loaded into the learner’s editor or inserted by the clue controls. Shared creations and Maker programs remain explicit user-created content.
+
 ## Kids’ interface redesign
 
 The refreshed interface uses a friendly star mascot, matching SVG logo and install icons, and a cream, purple and mint palette. The workspace now follows three visible steps: meet the mission, build an idea, and see it come alive. A single main Run action sits with the program. Hints, generated code and sticker rewards can be opened when wanted; extra activities live under Explore and learning settings under Grown-ups. The data-clearing action is inside Parent Mode.

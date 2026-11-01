@@ -705,8 +705,10 @@ function makePack_6_7(){
       "Use say(\"...\") at least once.",
       "Try: say(\"I can code!\")",
 `// Level 1
-say("I can code!");`,
-      s => ok((s.messages?.length||0) >= 1, "Nice! ✅", "Add say(\"...\") then Run.")
+say("Hello!");
+say("I can code!");
+say("Let’s explore!");`,
+      s => ok((s.messages?.length||0) >= 3, "Three messages! You taught your hero to talk. ✅", "Add three messages, then Run.")
     ),
     L("Colour Magic", "Choose your hero colour.",
       "Use setColor(\"...\").",
@@ -738,7 +740,7 @@ moveUp(70);`,
 repeat(3, () => {
   addStar();
 });`,
-      s => ok(s.stars >= 3, "Stars! ⭐⭐⭐✅", "Use repeat(3, () => { addStar(); }).")
+      s => ok(s.stars >= 3 && s.loopRuns > 0, "Stars! ⭐⭐⭐✅", "Use a loop to make three stars.")
     ),
     L("Button A", "Make your hero respond to a button.",
       "Wire button A to moveRight(60).",
@@ -748,7 +750,7 @@ say("Press A!");
 onButton("A", () => {
   moveRight(60);
 });`,
-      s => ok(s.buttonWires?.A === true, "Button A wired! Now press A. ✅", "Use onButton(\"A\", () => { ... }).")
+      s => ok(s.buttonEffects?.A?.right > 0, "You made A move your hero! ✅", "Connect A to a right move, Run, then press A.")
     ),
     L("B Button", "Now wire button B to add a star.",
       "When you press B, addStar().",
@@ -758,7 +760,7 @@ say("Press B!");
 onButton("B", () => {
   addStar();
 });`,
-      s => ok(s.buttonWires?.B === true, "Button B wired! ✅", "Use onButton(\"B\", () => { addStar(); }).")
+      s => ok(s.buttonEffects?.B?.stars > 0, "B makes a star! ✅", "Connect B to a star, Run, then press B.")
     ),
     L("Variables", "Use a variable called steps.",
       "Create steps then moveRight(steps).",
@@ -794,8 +796,10 @@ function makePack_7_8(){
       "Make the hero say something using say(\"...\").",
       "Try: say(\"Hi! I’m coding!\")",
 `// Level 1
-say("Hi! I'm learning code!");`,
-      s => ok((s.messages?.length||0) >= 1, "Nice! The hero spoke. ✅", "Not yet — add a say(\"...\") line and press Run.")
+say("Hi!");
+say("I'm learning code!");
+say("What shall we make?");`,
+      s => ok((s.messages?.length||0) >= 3, "Three messages! You taught your hero to talk. ✅", "Add three messages in one program, then Run.")
     ),
     L("Colour Magic", "A rainbow cloud floats by. Pick a colour to power-up your hero!",
       "Change the hero colour using setColor(\"pink\") (or any colour).",
@@ -838,7 +842,7 @@ say("Stars incoming!");
 repeat(3, () => {
   addStar();
 });`,
-      s => ok(s.stars >= 3, "Stars collected! ⭐⭐⭐✅", "Make 3 stars with repeat(...).")
+      s => ok(s.stars >= 3 && s.loopRuns > 0, "Stars collected! ⭐⭐⭐✅", "Make three stars using a loop.")
     ),
     L("Button A", "Now your hero listens to YOU. Press A to move!",
       "Make Button A move the hero right when pressed.",
@@ -848,7 +852,7 @@ say("Press A to move!");
 onButton("A", () => {
   moveRight(60);
 });`,
-      s => ok(s.buttonWires?.A === true, "Button A wired! Now press A and watch! ✅", "Use onButton(\"A\", () => { moveRight(...); }).")
+      s => ok(s.buttonEffects?.A?.right > 0, "You made A move your hero! ✅", "Connect A to a right move, Run, then press A.")
     ),
     L("Variables", "A secret number powers your hero. Let’s use a variable!",
       "Create a variable called steps and use it to move right.",
@@ -915,7 +919,7 @@ moveDown(120);`,
 repeat(5, () => {
   addStar();
 });`,
-      s => ok(s.stars >= 5, "Loop complete! ✅", "Add 5 stars with repeat(5,...).")
+      s => ok(s.stars >= 5 && s.loopRuns > 0, "Loop complete! ✅", "Use a loop to add five stars.")
     ),
     L("Event Control", "Wire A to moveRight and B to moveLeft.",
       "Use onButton for A and B.",
@@ -923,7 +927,7 @@ repeat(5, () => {
 `// Level 4
 onButton("A", () => { moveRight(50); });
 onButton("B", () => { moveLeft(50); });`,
-      s => ok(s.buttonWires?.A && s.buttonWires?.B, "Great controls! ✅", "Wire both A and B.")
+      s => ok(s.buttonEffects?.A?.right > 0 && s.buttonEffects?.B?.left > 0, "Great controls! ✅", "Connect and test both A and B.")
     ),
     L("Function Builder", "Write a function to draw a square path.",
       "Make function square() and call it.",
@@ -967,7 +971,7 @@ say("n was " + n);`,
 onButton("C", () => {
   repeat(2, () => addStar());
 });`,
-      s => ok(s.buttonWires?.C, "C wired! ✅", "Wire C with onButton.")
+      s => ok(s.buttonEffects?.C?.stars >= 2 && s.buttonEffects?.C?.loops > 0, "C creates stars with a loop! ✅", "Connect C, then test its star loop.")
     ),
     L("Challenge", "Make a little dance move using a function.",
       "Write function dance() and call it twice.",
@@ -1134,6 +1138,9 @@ function buildGameSrcdoc(userCode) {
     calledJumpFunction: false,
     usedRandomInt: false,
     buttonWires: { A:false, B:false, C:false },
+    buttonEffects: {},
+    testedButtons: {},
+    loopRuns: 0,
     sticker: null
   };
 
@@ -1275,6 +1282,7 @@ function buildGameSrcdoc(userCode) {
   };
 
   window.repeat = (times, fn) => {
+    state.loopRuns++;
     const n = Number(times);
     const count = (Number.isFinite(n) ? Math.max(0, Math.min(40, Math.floor(n))) : 0);
     for (let i = 0; i < count; i++) fn();
@@ -1304,8 +1312,17 @@ function buildGameSrcdoc(userCode) {
   window.__buttonHandlers = { A:null, B:null, C:null };
   window.__pressButton = (key) => {
     const k = String(key).toUpperCase();
+    state.testedButtons[k] = true;
     const fn = window.__buttonHandlers[k];
-    if (typeof fn === "function") fn();
+    if (typeof fn === "function") {
+      const before = { ...state.moves, stars:state.stars, loops:state.loopRuns };
+      executing = true;
+      try { fn(); } finally { executing = false; }
+      state.buttonEffects[k] = {
+        right:state.moves.right - before.right, left:state.moves.left - before.left,
+        stars:state.stars - before.stars, loops:state.loopRuns - before.loops
+      };
+    }
     sendState();
   };
 
@@ -1419,6 +1436,7 @@ window.addEventListener("message", (ev) => {
     activeRun.failed = true;
     setStatus(`⚠️ Code error: ${err}`, "warn");
     nextBtn.disabled = true;
+    recordLessonAttempt(activeRun);
     return;
   }
   if (!ev.data.complete) return;
@@ -1430,6 +1448,8 @@ window.addEventListener("message", (ev) => {
   if (result.ok) {
     setStatus(result.message, "good");
     nextBtn.disabled = false;
+    document.getElementById('attemptNote').textContent = "You worked it out! Try a different idea, or choose Next quest when you’re ready.";
+    document.getElementById('practiceHelp').hidden = true;
 
     // Update progress: completed this level
     const prog = getPackProgress(packId);
@@ -1454,9 +1474,15 @@ window.addEventListener("message", (ev) => {
       try{ renderDaily(); }catch{}
     }
   } else {
-    setStatus(result.message, "neutral");
+    const guide = getLessonGuide(packId, currentLevel, levels[currentLevel]);
+    if (guide.topics.includes('event') && Object.values(lastState.buttonWires || {}).some(Boolean) && !Object.keys(lastState.testedButtons || {}).length) {
+      setStatus("Your program is running. Press the mission’s A, B or C button in your little world to test it. Need help? Ask for a clue.", "neutral");
+      nextBtn.disabled = true;
+      return;
+    }
+    setStatus(lessonFeedback(lastState, guide), "neutral");
     nextBtn.disabled = true;
-    playSound("fail");
+    recordLessonAttempt(activeRun);
   }
 });
 
@@ -1562,6 +1588,7 @@ function loadLevel(i) {
 
   currentLevel = Math.max(0, Math.min(levels.length - 1, i));
   const lvl = levels[currentLevel];
+  lessonPractice = { attempts:0, hintStep:0 };
 
   levelTitle.textContent = `Level ${currentLevel + 1}: ${lvl.title}`;
   levelStory.textContent = lvl.story;
@@ -1573,34 +1600,27 @@ function loadLevel(i) {
 
   blocksProgram = [];
   makerRunning = false;
-  codeBox.value = lvl.starter;
+  codeBox.value = "";
   updateModeForPack();
   if (agePackSelect.value === "4-5"){
     // Keep blocks as the source of truth
     renderBlocksWorkspace();
   }
   nextBtn.disabled = true;
-  setStatus("Edit the code, then press Run ▶", "neutral");
+  setStatus("Read the mini-lesson, then try your own idea. Clues are here if you need them.", "neutral");
   refreshParentEditors();
   lastState = null;
   activeRun = null;
   gameFrame.srcdoc = buildGameSrcdoc("");
   renderStory();
+  renderLessonTeaching(lvl);
 }
 
 runBtn.addEventListener("click", runCode);
 resetBtn.addEventListener("click", () => loadLevel(currentLevel));
 
 copyStarterBtn.addEventListener("click", () => {
-  const packId = agePackSelect.value;
-  const levels = getLevelsWithEdits(packId);
-  codeBox.value = levels[currentLevel].starter;
-  if (agePackSelect.value === "4-5") {
-    blocksProgram = expectedBlocksForLevel().map(defaultBlock);
-    renderBlocksWorkspace();
-  }
-  setStatus("Starter code restored. Press Run ▶", "neutral");
-  nextBtn.disabled = true;
+  requestLessonHint();
 });
 
 nextBtn.addEventListener("click", () => {
@@ -2151,7 +2171,7 @@ function renderBlocksWorkspace(){
   const exp = expectedBlocksForLevel();
   if (agePackSelect.value === "4-5"){
     if (!blocksProgram.length) setCoach("Drag blocks here ✨ (or tap a block on the left)");
-    else if (exp.length) setCoach(`Nice! Next: ${exp[Math.min(blocksProgram.length, exp.length-1)]}`);
+    else if (exp.length) setCoach("You’re building an idea! Run it to see what happens, or ask for a clue.");
     else setCoach("Looking good! Add another block or press Run Blocks.");
     highlightNextExpectedBlock();
   }
@@ -2185,7 +2205,7 @@ blocksRunBtn.addEventListener("click", () => {
   const exp = expectedBlocksForLevel();
   if (agePackSelect.value === "4-5"){
     if (!blocksProgram.length) setCoach("Drag blocks here ✨ (or tap a block on the left)");
-    else if (exp.length) setCoach(`Nice! Next: ${exp[Math.min(blocksProgram.length, exp.length-1)]}`);
+    else if (exp.length) setCoach("Run your idea and compare it with the mission. You can always try again.");
     else setCoach("Looking good! Add another block or press Run Blocks.");
     highlightNextExpectedBlock();
   }
@@ -2201,10 +2221,9 @@ function updateModeForPack(){
   // In block mode, make code read-only so typing isn't required (parents can still change packs).
   codeBox.readOnly = blockMode;
   if (blockMode){
-    // show blocks, seed blocks from starter if empty
+    // Begin with an empty workspace; hints guide without filling it in.
     renderBlocksPalette();
     if (!blocksProgram.length){
-      // create a friendly default program
       blocksProgram = [];
     }
     renderBlocksWorkspace();
@@ -2293,28 +2312,12 @@ function expectedBlocksForLevel(){
 
 let coachHintIndex = 0;
 function nextCoachTip(){
-  const packId = agePackSelect.value;
-  if (packId !== "4-5"){
-    setCoach("Tip: Try changing colour, moving, and adding stars!");
-    return;
-  }
-  const exp = expectedBlocksForLevel();
-  const tips = [
-    "Drag a block from the left into the right side (or tap it).",
-    "You can change the number or colour inside a block.",
-    "Press Run Blocks to see your hero do it!",
-    "Try adding a star ⭐ block — stars are super fun.",
-    "If you make a mistake, tap Undo ↺ or Clear Blocks.",
-  ];
-  const goal = exp.length ? `For this level, try: ${exp.join(" → ")}` : "Try any blocks you like!";
-  const msg = [goal, ...tips][coachHintIndex % (tips.length + 1)];
-  coachHintIndex++;
-  setCoach(msg);
+  setCoach("Read the mini-lesson, then choose your own blocks. Ask for a clue if you get stuck.");
   highlightNextExpectedBlock();
 }
 
 nextHintBtn?.addEventListener("click", () => {
-  nextCoachTip();
+  requestLessonHint();
   playSound("click");
 });
 
@@ -2324,7 +2327,7 @@ function highlightNextExpectedBlock(){
   const guided = !!st.guidedBlocks;
   // Remove existing highlights
   blocksPalette?.querySelectorAll(".block").forEach(b => b.classList.remove("guided"));
-  if (!guided) return;
+  if (!guided || lessonPractice.hintStep < 2) return;
 
   const exp = expectedBlocksForLevel();
   if (!exp.length) return;

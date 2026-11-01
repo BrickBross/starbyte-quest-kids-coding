@@ -15,6 +15,10 @@
     return label;
   };
   mission.prepend(step('Meet your mission', '1'));
+  const teaching = document.createElement('div');
+  teaching.className = 'lessonTeaching';
+  teaching.innerHTML = '<strong>Let’s learn first</strong><p id="lessonTeaching"></p><div id="lessonReference" class="lessonReference"></div>';
+  mission.append(teaching);
   // Give the learner a single workspace next to the visible result.
   layout.prepend(mission);
   byId('blocksCard').prepend(step('Build your idea', '2'));
@@ -24,12 +28,23 @@
   controls.classList.add('runControls');
   buildPanel.append(controls);
   buildPanel.append(byId('statusBox'));
+  const practice = document.createElement('div');
+  practice.className = 'practiceSupport';
+  practice.innerHTML = '<p id="attemptNote" aria-live="polite"></p><div id="practiceHelp" hidden><strong>Let’s think it through together.</strong><p>You’ve tried a few ideas. A clue can help you choose the next step. Your program stays just as you wrote it.</p><button id="practiceClueBtn" class="btn">💡 Help me with the next step</button></div>';
+  buildPanel.append(practice);
+  byId('practiceClueBtn').addEventListener('click', () => requestLessonHint());
   byId('statusBox').setAttribute('aria-atomic', 'true');
   const hint = mission.querySelector('.hint');
   const hintDetails = document.createElement('details');
   hintDetails.className = 'missionHint';
   hintDetails.innerHTML = '<summary>💡 I need a hint</summary>';
   hint.replaceWith(hintDetails); hintDetails.append(hint);
+  const hintControls = document.createElement('div');
+  hintControls.className = 'hintControls';
+  hintControls.innerHTML = '<span id="hintProgress"></span><button id="moreClueBtn" class="btn small">Another clue →</button>';
+  hintDetails.append(hintControls);
+  byId('moreClueBtn').addEventListener('click', () => requestLessonHint());
+  hintDetails.addEventListener('toggle', () => { if (hintDetails.open && lessonPractice.hintStep === 0) requestLessonHint(); });
   // Rewards stay available, but do not interrupt the current quest.
   const rewards = document.createElement('details');
   rewards.className = 'rewardDrawer';
