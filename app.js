@@ -202,13 +202,16 @@ const insertRow = $("insertRow");
 
 let currentLevel = 0;
 let lastState = null;
+let activeRun = null;
+let runSequence = 0;
+let makerRunning = false;
 let selectedStickerId = null;
 
 let blocksProgram = []; // array of block objects for Ages 4–5
 let draggingBlockType = null;
 
 const STORAGE_KEY = "starbyteQuest.v1";
-const APP_VERSION = "2026-01-15.1";
+const APP_VERSION = "2026-11-01.1";
 
 // ---------------------- Skill Tree / Badges ----------------------
 const SKILLS = [
@@ -329,12 +332,12 @@ const STICKER_PACKS = {
 };
 
 function getActiveStickers(){
-  const pack = loadState().stickerPack || "mix";
+  const pack = readActiveProfile().stickerPack || "mix";
   return STICKER_PACKS[pack] || STICKER_PACKS.mix;
 }
 
 function renderStickers(){
-  const state = loadState();
+  const state = readActiveProfile();
   const stars = state.progressStars || 0;
   const unlockedAll = !!state.parentUnlockAllStickers;
 
@@ -374,7 +377,7 @@ function ensureAudio(){
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 function playSound(type){
-  const st = readActiveProfile();
+  const st = loadState();
   if (!st.soundOn) return;
   try{
     ensureAudio();
@@ -411,7 +414,7 @@ function updateSoundButton(){
 }
 
 soundToggle.addEventListener("click", async () => {
-  const st = readActiveProfile();
+  const st = loadState();
   saveState({ soundOn: !st.soundOn });
   updateSoundButton();
   playSound("open");
@@ -447,11 +450,12 @@ function setPackProgress(packId, patch){
   const st = readActiveProfile();
   const next = { ...(st.progressByPack || {}) };
   next[packId] = { ...(next[packId] || { maxLevelCompleted:-1 }), ...patch };
-  saveState({ progressByPack: next });
+  writeActiveProfile({ progressByPack: next });
 }
 
 // ---------------------- Modals ----------------------
 function showModal(el){
+  hideHome();
   el.classList.add("show");
   el.setAttribute("aria-hidden", "false");
   playSound("open");
@@ -591,7 +595,7 @@ function setParentMode(on){
 }
 
 function toggleParentMode(){
-  const st = readActiveProfile();
+  const st = loadState();
   const existing = st.parentPinHash;
 
   if (st.parentMode){
@@ -645,7 +649,7 @@ moveRight(120);`,
       "Try: moveLeft(80)",
 `// Level 4
 moveLeft(80);`,
-      s => ok(s.x <= 120, "Got it! ✅", "Use moveLeft(...).")
+      s => ok(s.moves?.left > 0 && s.x <= 120, "Got it! ✅", "Use moveLeft(...).")
     ),
     L("Big Hero", "Be big like a dinosaur!",
       "Make the hero bigger with setSize(120).",
@@ -932,7 +936,7 @@ function square(){
   moveUp(60);
 }
 square();`,
-      s => ok(true, "Nice! (This one is practice — any working code passes.) ✅", "Write a function and call it.")
+      s => ok(s.moves?.right > 0 && s.moves?.down > 0 && s.moves?.left > 0 && s.moves?.up > 0, "Square path complete! ✅", "Write square() and call it to move in all four directions.")
     ),
     L("Random Game", "Make random stars and say how many.",
       "Use randomInt(3,8), repeat, and say.",
@@ -976,7 +980,7 @@ function dance(){
 }
 dance();
 dance();`,
-      s => ok(true, "Dance party! ✅", "Make a function and call it twice.")
+      s => ok(s.moves?.left >= 4 && s.moves?.right >= 2, "Dance party! ✅", "Make a function and call it twice.")
     ),
     L("Finish!", "Final challenge: style + movement + stars.",
       "Use setColor, setSize, move, and add at least 3 stars.",
@@ -1009,7 +1013,8 @@ function ok(condition, goodMsg, badMsg){
 
 // ---------------------- Iframe HTML template ----------------------
 function buildGameSrcdoc(userCode) {
-  const safeCode = userCode.replace(/<\/script>/gi, "<\\/script>");
+  const safeCode = JSON.stringify(userCode).replace(/</g, "\\u003c");
+  const theme = THEMES[themeSelect.value] || THEMES.candy;
 
   return `<!doctype html>
 <html>
@@ -1017,6 +1022,7 @@ function buildGameSrcdoc(userCode) {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
+  :root{--bg:${theme.bg};--accent2:${theme.accent2}}
   html,body{height:100%; margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;}
   body{
     background: radial-gradient(900px 500px at 30% 0%, rgba(255,255,255,.12), transparent 60%), var(--bg, #0a0f22);
@@ -1096,7 +1102,7 @@ function buildGameSrcdoc(userCode) {
 <body>
   <div class="stage">
     <div class="play" id="play">
-      <div class="hero" id="hero">☺</div>
+      <div class="hero" id="hero"><span class="face">☺</span></div>
     </div>
     <div class="hud" id="hud">
       <div><b>Stars:</b> <span id="starsCount">0</span></div>
@@ -1113,12 +1119,15 @@ function buildGameSrcdoc(userCode) {
   const xVal = document.getElementById("xVal");
   const yVal = document.getElementById("yVal");
 
+  const runId = ${activeRun?.id ?? 0};
+  let executing = true;
   const state = {
     x: 120,
     y: 220,
     size: 80,
     color: getComputedStyle(document.documentElement).getPropertyValue("--accent2") || "#7f8cff",
     messages: [],
+    moves: { right:0, left:0, up:0, down:0 },
     stars: 0,
     colorChanged: false,
     usedVariableSteps: false,
@@ -1131,15 +1140,18 @@ function buildGameSrcdoc(userCode) {
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
   function render() {
-    hero.style.left = state.x + "px";
-    hero.style.top = state.y + "px";
-    hero.style.width = state.size + "px";
-    hero.style.height = state.size + "px";
+    const scale = Math.min(play.clientWidth / 520, play.clientHeight / 440, 1);
+    hero.style.left = (state.x * scale) + "px";
+    hero.style.top = (state.y * scale) + "px";
+    hero.style.width = (state.size * scale) + "px";
+    hero.style.height = (state.size * scale) + "px";
     hero.style.background = state.color;
     starsCountEl.textContent = String(state.stars);
     xVal.textContent = String(state.x);
     yVal.textContent = String(state.y);
   }
+
+  new ResizeObserver(render).observe(play);
 
   function clearBubble() {
     const b = hero.querySelector(".bubble");
@@ -1187,26 +1199,30 @@ function buildGameSrcdoc(userCode) {
   };
 
   window.moveRight = (px) => {
+    state.moves.right++;
     const n = Number(px);
-    if (Number.isFinite(n)) state.x = clamp(state.x + Math.round(n), 0, play.clientWidth - state.size);
+    if (Number.isFinite(n)) state.x = clamp(state.x + Math.round(n), 0, 520 - state.size);
     render();
     sendState();
   };
   window.moveLeft = (px) => {
+    state.moves.left++;
     const n = Number(px);
-    if (Number.isFinite(n)) state.x = clamp(state.x - Math.round(n), 0, play.clientWidth - state.size);
+    if (Number.isFinite(n)) state.x = clamp(state.x - Math.round(n), 0, 520 - state.size);
     render();
     sendState();
   };
   window.moveUp = (px) => {
+    state.moves.up++;
     const n = Number(px);
-    if (Number.isFinite(n)) state.y = clamp(state.y - Math.round(n), 0, play.clientHeight - state.size);
+    if (Number.isFinite(n)) state.y = clamp(state.y - Math.round(n), 0, 440 - state.size);
     render();
     sendState();
   };
   window.moveDown = (px) => {
+    state.moves.down++;
     const n = Number(px);
-    if (Number.isFinite(n)) state.y = clamp(state.y + Math.round(n), 0, play.clientHeight - state.size);
+    if (Number.isFinite(n)) state.y = clamp(state.y + Math.round(n), 0, 440 - state.size);
     render();
     sendState();
   };
@@ -1226,6 +1242,36 @@ function buildGameSrcdoc(userCode) {
     play.appendChild(s);
     render();
     sendState();
+  };
+
+  window.celebrate = () => { say("You did it! 🎉"); setColor("gold"); };
+  window.startMiniGame = (kind, options = {}) => {
+    const seconds = Math.max(10, Math.min(90, Number(options.seconds) || 30));
+    const goal = Math.max(1, Math.min(50, Number(options.goal) || 10));
+    let score = 0, remaining = seconds, ended = false;
+    const label = document.createElement("div");
+    label.style.cssText = "position:absolute;top:8px;left:8px;z-index:5;background:#0a0f22;padding:8px;border-radius:8px";
+    play.appendChild(label);
+    const update = () => { label.textContent = "Score: " + score + " / " + goal + " • " + remaining + "s"; };
+    update();
+    const spawn = setInterval(() => {
+      if (ended) return;
+      const target = document.createElement("button");
+      target.textContent = kind === "starcatch" ? "⭐" : "🎯";
+      target.style.cssText = "position:absolute;width:44px;height:44px;font-size:24px;border:0;border-radius:12px;cursor:pointer;z-index:4";
+      target.style.left = Math.random() * Math.max(0, play.clientWidth - 44) + "px";
+      target.style.top = 44 + Math.random() * Math.max(0, play.clientHeight - 88) + "px";
+      play.appendChild(target);
+      target.onclick = () => { if (ended) return; score++; update(); target.remove(); if (score >= goal) finish(); };
+      setTimeout(() => target.remove(), 1400);
+    }, 450);
+    const timer = setInterval(() => { remaining--; update(); if (remaining <= 0) finish(); }, 1000);
+    function finish(){
+      if (ended) return;
+      ended = true; clearInterval(spawn); clearInterval(timer);
+      label.textContent = (score >= goal ? "Goal reached! 🎉 " : "Time up! ") + "Score: " + score;
+      parent.postMessage({ type:"MINIGAME_DONE", kind, score }, "*");
+    }
   };
 
   window.repeat = (times, fn) => {
@@ -1266,7 +1312,9 @@ function buildGameSrcdoc(userCode) {
   window.__setAvatar = (base, hat, pet) => {
     state.avatar = { base: base||'🙂', hat: hat||'', pet: pet||'' };
     // update visuals
-    hero.textContent = state.avatar.base || '🙂';
+    let face = hero.querySelector('.face');
+    if (!face){ face = document.createElement('span'); face.className = 'face'; hero.prepend(face); }
+    face.textContent = state.avatar.base || '🙂';
     setSticker(state.sticker);
     // hat/pet elements
     let hatEl = document.getElementById('hat');
@@ -1300,19 +1348,32 @@ function buildGameSrcdoc(userCode) {
   };
 
   function sendState(extraError) {
-    const payload = { type: "STATE", state: { ...state }, error: extraError || null };
+    const payload = { type: "STATE", runId, complete: !executing, state: { ...state }, error: extraError || null };
     parent.postMessage(payload, "*");
   }
 
   render();
   sendState();
 
+  window.addEventListener("message", (event) => {
+    if (event.source !== parent || event.data?.type !== "GAME_COMMAND") return;
+    const { command, args = [] } = event.data;
+    const allowed = { press: window.__pressButton, sticker: window.__applySticker, place: window.__placeSticker, avatar: window.__setAvatar };
+    try { if (allowed[command]) allowed[command](...args); } catch (err) { sendState(String(err.message || err)); }
+  });
+  window.addEventListener("click", (event) => {
+    if (event.shiftKey && state.sticker) {
+      const rect = play.getBoundingClientRect();
+      window.__placeSticker(state.sticker, event.clientX - rect.left, event.clientY - rect.top);
+    }
+  });
   try {
-    ${safeCode}
+    eval(${safeCode});
   } catch (err) {
     sendState(String(err && err.message ? err.message : err));
   }
 
+  executing = false;
   sendState();
 })();
 </script>
@@ -1341,17 +1402,26 @@ function detectSkillsFromCode(code){
   };
 }
 
+function sendGameCommand(command, ...args){
+  gameFrame.contentWindow.postMessage({ type:"GAME_COMMAND", command, args }, "*");
+}
+gameFrame.addEventListener("load", applyAvatar);
+
 // ---------------------- Runner / Messaging ----------------------
 window.addEventListener("message", (ev) => {
-  if (!ev.data || ev.data.type !== "STATE") return;
+  if (ev.source !== gameFrame.contentWindow || !ev.data || ev.data.type !== "STATE") return;
+  if (!activeRun || ev.data.runId !== activeRun.id || activeRun.maker || activeRun.failed) return;
+  if (activeRun.packId !== agePackSelect.value || activeRun.level !== currentLevel || activeRun.profileId !== loadState().activeProfileId) return;
   lastState = ev.data.state;
   const err = ev.data.error;
 
   if (err) {
+    activeRun.failed = true;
     setStatus(`⚠️ Code error: ${err}`, "warn");
     nextBtn.disabled = true;
     return;
   }
+  if (!ev.data.complete) return;
 
   const packId = agePackSelect.value;
   const levels = getLevelsWithEdits(packId);
@@ -1367,7 +1437,7 @@ window.addEventListener("message", (ev) => {
       setPackProgress(packId, { maxLevelCompleted: currentLevel });
       // earn 1⭐ per new level completion
       const st = readActiveProfile();
-      saveState({ progressStars: (st.progressStars || 0) + 1 });
+      writeActiveProfile({ progressStars: (st.progressStars || 0) + 1 });
       renderStickers();
       // Skills tracking (approx)
       const sk = detectSkillsFromCode(codeBox.value || "");
@@ -1418,6 +1488,8 @@ function buildWrappedUserCode(raw) {
 }
 
 function runCode() {
+  if (agePackSelect.value === "4-5" && !makerRunning) codeBox.value = blocksToProgramCode();
+  activeRun = { id: ++runSequence, packId: agePackSelect.value, level: currentLevel, profileId: loadState().activeProfileId, failed: false, maker: makerRunning };
   const raw = codeBox.value || "";
   const wrapped = buildWrappedUserCode(raw);
   const srcdoc = buildGameSrcdoc(wrapped);
@@ -1499,6 +1571,8 @@ function loadLevel(i) {
   levelLabel.textContent = `Level ${currentLevel + 1} of ${levels.length} • Pack ${packId}`;
   barInner.style.width = `${Math.round(((currentLevel) / (levels.length)) * 100)}%`;
 
+  blocksProgram = [];
+  makerRunning = false;
   codeBox.value = lvl.starter;
   updateModeForPack();
   if (agePackSelect.value === "4-5"){
@@ -1508,16 +1582,23 @@ function loadLevel(i) {
   nextBtn.disabled = true;
   setStatus("Edit the code, then press Run ▶", "neutral");
   refreshParentEditors();
-  runCode();
+  lastState = null;
+  activeRun = null;
+  gameFrame.srcdoc = buildGameSrcdoc("");
+  renderStory();
 }
 
 runBtn.addEventListener("click", runCode);
-resetBtn.addEventListener("click", () => runCode());
+resetBtn.addEventListener("click", () => loadLevel(currentLevel));
 
 copyStarterBtn.addEventListener("click", () => {
   const packId = agePackSelect.value;
   const levels = getLevelsWithEdits(packId);
   codeBox.value = levels[currentLevel].starter;
+  if (agePackSelect.value === "4-5") {
+    blocksProgram = expectedBlocksForLevel().map(defaultBlock);
+    renderBlocksWorkspace();
+  }
   setStatus("Starter code restored. Press Run ▶", "neutral");
   nextBtn.disabled = true;
 });
@@ -1539,7 +1620,7 @@ document.querySelectorAll("[data-gamebtn]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const key = btn.getAttribute("data-gamebtn");
     try {
-      gameFrame.contentWindow.__pressButton(key);
+      sendGameCommand("press", key);
       playSound("click");
     } catch (e) {
       setStatus("Press Run first, then try the buttons.", "warn");
@@ -1552,7 +1633,7 @@ useStickerBtn.addEventListener("click", () => {
   const emoji = getSelectedStickerEmoji();
   if (!emoji) return;
   try {
-    gameFrame.contentWindow.__applySticker(emoji);
+    sendGameCommand("sticker", emoji);
     playSound("click");
   } catch (e) {
     setStatus("Press Run first, then apply a sticker.", "warn");
@@ -1562,7 +1643,7 @@ useStickerBtn.addEventListener("click", () => {
 clearStickerBtn.addEventListener("click", () => {
   selectedStickerId = null;
   renderStickers();
-  try { gameFrame.contentWindow.__applySticker(null); } catch {}
+  try { sendGameCommand("sticker", null); } catch {}
 });
 
 // Theme & pack selectors
@@ -1586,7 +1667,7 @@ themeSelect.addEventListener("change", () => {
 agePackSelect.addEventListener("change", () => {
   updateModeForPack();
   const packId = agePackSelect.value;
-  saveState({ agePack: packId });
+  writeActiveProfile({ agePack: packId });
   const prog = getPackProgress(packId);
   // start at next uncompleted level (or 0)
   const start = Math.max(0, Math.min((prog.maxLevelCompleted ?? -1) + 1, getLevelsWithEdits(packId).length - 1));
@@ -1607,7 +1688,7 @@ jumpLevelBtn.addEventListener("click", () => {
 
 unlockAllStickersBtn.addEventListener("click", () => {
   if (!isParentMode()) return;
-  saveState({ parentUnlockAllStickers: true });
+  writeActiveProfile({ parentUnlockAllStickers: true });
   renderStickers();
   alert("All stickers unlocked on this device.");
 });
@@ -1615,6 +1696,9 @@ unlockAllStickersBtn.addEventListener("click", () => {
 resetProgressBtn.addEventListener("click", () => {
   if (!isParentMode()) return;
   if (!confirm("Reset all progress and stars on this device?")) return;
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("starbyte_quest_profile_")) localStorage.removeItem(key);
+  }
   localStorage.removeItem(STORAGE_KEY);
   initFromStorage();
   alert("Progress reset.");
@@ -1654,7 +1738,7 @@ function initFromStorage(){
   updateSoundButton();
   updateModeForPack();
 
-  setParentMode(!!st.parentMode);
+  setParentMode(!!loadState().parentMode);
 
   renderStickers();
   renderAlbum();
@@ -1666,7 +1750,7 @@ function initFromStorage(){
   loadLevel(start);
 }
 
-initFromStorage();
+window.addEventListener("DOMContentLoaded", () => { initFromStorage(); renderStory(); });
 console.log("Starbyte Quest app version", APP_VERSION);
 
 
@@ -1809,9 +1893,9 @@ function buildMiniGameSrcdoc(kind){
 }
 
 window.addEventListener("message", (ev) => {
-  if (ev.data && ev.data.type === "MINIGAME_DONE"){
+  if (ev.source === gameFrame.contentWindow && ev.data && ev.data.type === "MINIGAME_DONE" && Number.isFinite(ev.data.score)){
     const st = readActiveProfile();
-    const bonus = Math.min(5, Math.floor(ev.data.score/5)); // small bonus
+    const bonus = Math.max(0, Math.min(5, Math.floor(ev.data.score/5))); // small bonus
     if (bonus > 0){
       writeActiveProfile({ progressStars: (st.progressStars||0) + bonus });
       renderStickers();
@@ -1820,13 +1904,7 @@ window.addEventListener("message", (ev) => {
     if (bonus>0) logHistory({ type:"MINIGAME_BONUS", kind: ev.data.kind, bonus });
     playSound("success");
   try{ maybeUnlockTrophies(true); }catch{}
-      // Badge metrics
-      const bm = detectBadgeFromCode(codeBox.value || "");
-      Object.entries(bm).forEach(([k,v]) => { if (v) bumpBadgeMetric(k, v); });
-      // History
-      logHistory({ type:"LEVEL_COMPLETE", packId, level: currentLevel, starsEarned: 1 });
-      // Daily check refresh
-      try{ renderDaily(); }catch{}
+
   }
 }, { passive:true });
 
@@ -1912,7 +1990,7 @@ insertRow.querySelectorAll("[data-insert]").forEach(btn => {
 
 // Place sticker on stage: hold Shift and click the Game Screen
 gameFrame.addEventListener("load", () => {
-  // no-op
+  applyAvatar();
 });
 document.addEventListener("keydown", (e) => {
   // Just a hint in status when parent is placing
@@ -1930,7 +2008,7 @@ if (gameWrap){
     const x = ev.clientX - rect.left;
     const y = ev.clientY - rect.top;
     try{
-      gameFrame.contentWindow.__placeSticker(emoji, x, y);
+      sendGameCommand("place", emoji, x, y);
       playSound("click");
       setStatus("Sticker placed! (Tip: hold Shift and click to place.)", "good");
     }catch{
@@ -1960,6 +2038,7 @@ const BLOCK_DEFS = [
   { type:"left", icon:"⬅️", label:"Move Left", fields:[{k:"px", kind:"number", placeholder:"80", default:80}] },
   { type:"up", icon:"⬆️", label:"Move Up", fields:[{k:"px", kind:"number", placeholder:"60", default:80}] },
   { type:"down", icon:"⬇️", label:"Move Down", fields:[{k:"px", kind:"number", placeholder:"60", default:80}] },
+  { type:"size", icon:"🦖", label:"Size", fields:[{k:"px", kind:"number", default:140}] },
   { type:"star", icon:"⭐", label:"Add Star", fields:[] },
   { type:"stars3", icon:"✨", label:"Add 3 Stars", fields:[] },
 ];
@@ -1978,6 +2057,7 @@ function blockToCode(b){
   if (b.type === "left") return `moveLeft(${Number(b.px)||80});`;
   if (b.type === "up") return `moveUp(${Number(b.px)||60});`;
   if (b.type === "down") return `moveDown(${Number(b.px)||60});`;
+  if (b.type === "size") return `setSize(${Number(b.px) || 140});`;
   if (b.type === "star") return `addStar();`;
   if (b.type === "stars3") return `repeat(3, () => { addStar(); });`;
   return `// unknown block`;
@@ -2125,7 +2205,7 @@ function updateModeForPack(){
     renderBlocksPalette();
     if (!blocksProgram.length){
       // create a friendly default program
-      blocksProgram = [ defaultBlock("say"), defaultBlock("right"), defaultBlock("star") ];
+      blocksProgram = [];
     }
     renderBlocksWorkspace();
     updateTTSButton();
@@ -2140,7 +2220,7 @@ function canSpeak(){
   return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 }
 function speakCoach(text){
-  const st = readActiveProfile();
+  const st = loadState();
   if (!st.ttsOn) return;
   if (!canSpeak()) return;
   try{
@@ -2170,7 +2250,7 @@ function updateGuidedButton(){
 }
 
 ttsToggle?.addEventListener("click", () => {
-  const st = readActiveProfile();
+  const st = loadState();
   saveState({ ttsOn: !st.ttsOn });
   updateTTSButton();
   setCoach(loadState().ttsOn ? "Voice is on! I can read the tips." : "Voice is off.");
@@ -2178,7 +2258,7 @@ ttsToggle?.addEventListener("click", () => {
 });
 
 guidedToggle?.addEventListener("click", () => {
-  const st = readActiveProfile();
+  const st = loadState();
   saveState({ guidedBlocks: !st.guidedBlocks });
   updateGuidedButton();
   highlightNextExpectedBlock();
@@ -2200,13 +2280,13 @@ function expectedBlocksForLevel(){
     0: ["say"],
     1: ["color"],
     2: ["right"],
-    3: ["star"],
-    4: ["say","right"],
-    5: ["color","star"],
-    6: ["stars3"],
-    7: ["right","right"],
-    8: ["say","color","star"],
-    9: ["say","right","stars3"],
+    3: ["left"],
+    4: ["size"],
+    5: ["star"],
+    6: ["star","star"],
+    7: ["up"],
+    8: ["say","star"],
+    9: ["say","right"],
   };
   return map[lvl] || [];
 }
@@ -2240,7 +2320,7 @@ nextHintBtn?.addEventListener("click", () => {
 
 function highlightNextExpectedBlock(){
   if (agePackSelect.value !== "4-5") return;
-  const st = readActiveProfile();
+  const st = loadState();
   const guided = !!st.guidedBlocks;
   // Remove existing highlights
   blocksPalette?.querySelectorAll(".block").forEach(b => b.classList.remove("guided"));
@@ -2290,11 +2370,12 @@ function ensureDefaultProfile(){
   if (!loadProfile(pid)){
     // Create a clean per-profile state bucket
     saveProfile(pid, {
-      progressByPack: {},
-      progressStars: 0,
-      editsByPack: {},
-      customLevelsByPack: {},
-      skillsByPack: {},
+      agePack: st.agePack || "7-8",
+      progressByPack: pid === "default" ? (st.progressByPack || {}) : {},
+      progressStars: pid === "default" ? (st.progressStars || 0) : 0,
+      editsByPack: pid === "default" ? (st.editsByPack || {}) : {},
+      customLevelsByPack: pid === "default" ? (st.customLevelsByPack || {}) : {},
+      skillsByPack: pid === "default" ? (st.skillsByPack || {}) : {},
       stickerPack: st.stickerPack || "mix",
       theme: st.theme || "candy",
       worldId: st.worldId || "candy",
@@ -2427,7 +2508,8 @@ function renderProfiles(){
       const id = btn.getAttribute("data-switch");
       saveState({ activeProfileId: id });
       ensureDefaultProfile();
-      // load profile settings
+      // Load this child’s saved pack and progress.
+      initFromStorage();
       const prof = readActiveProfile();
       themeSelect.value = prof.theme || themeSelect.value;
       stickerPackSelect.value = prof.stickerPack || stickerPackSelect.value;
@@ -2438,13 +2520,7 @@ function renderProfiles(){
       hideModal(profilesModal);
       playSound("success");
   try{ maybeUnlockTrophies(true); }catch{}
-      // Badge metrics
-      const bm = detectBadgeFromCode(codeBox.value || "");
-      Object.entries(bm).forEach(([k,v]) => { if (v) bumpBadgeMetric(k, v); });
-      // History
-      logHistory({ type:"LEVEL_COMPLETE", packId, level: currentLevel, starsEarned: 1 });
-      // Daily check refresh
-      try{ renderDaily(); }catch{}
+
     });
   });
 }
@@ -2469,13 +2545,7 @@ addProfileBtn?.addEventListener("click", () => {
   renderProfiles();
   playSound("success");
   try{ maybeUnlockTrophies(true); }catch{}
-      // Badge metrics
-      const bm = detectBadgeFromCode(codeBox.value || "");
-      Object.entries(bm).forEach(([k,v]) => { if (v) bumpBadgeMetric(k, v); });
-      // History
-      logHistory({ type:"LEVEL_COMPLETE", packId, level: currentLevel, starsEarned: 1 });
-      // Daily check refresh
-      try{ renderDaily(); }catch{}
+
 });
 
 
@@ -2505,13 +2575,7 @@ function renderWorlds(){
       hideModal(worldsModal);
       playSound("success");
   try{ maybeUnlockTrophies(true); }catch{}
-      // Badge metrics
-      const bm = detectBadgeFromCode(codeBox.value || "");
-      Object.entries(bm).forEach(([k,v]) => { if (v) bumpBadgeMetric(k, v); });
-      // History
-      logHistory({ type:"LEVEL_COMPLETE", packId, level: currentLevel, starsEarned: 1 });
-      // Daily check refresh
-      try{ renderDaily(); }catch{}
+
     });
   });
 }
@@ -2564,7 +2628,7 @@ closeSkillTreeBtn?.addEventListener("click", () => hideModal(skillTreeModal));
 // ---------------------- Daily Challenge ----------------------
 function getTodayKey(){
   const d = new Date();
-  return d.toISOString().slice(0,10);
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
 }
 const DAILY_POOL = [
   { id:"say3", title:"Say it 3 times", desc:"Make your hero say 3 messages (use say() 3 times).", check:(p)=> (p.badgeProgress?.talk||0) >= 3, bonus:2 },
@@ -2576,7 +2640,10 @@ const DAILY_POOL = [
 function getDaily(){
   const p = readActiveProfile();
   const today = getTodayKey();
-  if (p.daily?.date === today) return p.daily;
+  if (p.daily?.date === today) {
+    const picked = DAILY_POOL.find(item => item.id === p.daily.picked?.id);
+    if (picked) return { ...p.daily, picked };
+  }
   // pick deterministic based on date
   const seed = parseInt(today.replaceAll("-",""), 10);
   const idx = seed % DAILY_POOL.length;
@@ -2628,13 +2695,7 @@ claimDailyBtn?.addEventListener("click", () => {
   renderStickers(); renderAlbum(); renderDaily();
   playSound("success");
   try{ maybeUnlockTrophies(true); }catch{}
-      // Badge metrics
-      const bm = detectBadgeFromCode(codeBox.value || "");
-      Object.entries(bm).forEach(([k,v]) => { if (v) bumpBadgeMetric(k, v); });
-      // History
-      logHistory({ type:"LEVEL_COMPLETE", packId, level: currentLevel, starsEarned: 1 });
-      // Daily check refresh
-      try{ renderDaily(); }catch{}
+
 });
 
 
@@ -2690,7 +2751,7 @@ function applyAvatar(){
   const p = readActiveProfile();
   const a = p.avatar || { base:"🙂", hat:"", pet:"" };
   try{
-    gameFrame.contentWindow.__setAvatar(a.base, a.hat, a.pet);
+    sendGameCommand("avatar", a.base, a.hat, a.pet);
   }catch{}
 }
 
@@ -2917,7 +2978,7 @@ function renderMaker(){
     el.setAttribute("data-type", def.type);
     el.innerHTML = `<div class="left"><div class="icon">${def.icon}</div><div>${def.label}</div></div><div class="tinyNote">drag / tap</div>`;
     el.addEventListener("dragstart", () => { draggingBlockType = def.type; });
-    el.addEventListener("click", () => { makerProgram.push(defaultBlock(def.type)); renderMakerWorkspace(); playSound("click"); });
+    el.addEventListener("click", () => { makerProgram.push({ type:def.type, ...Object.fromEntries((def.fields || []).map(f => [f.k, f.default])) }); renderMakerWorkspace(); playSound("click"); });
     makerPalette.appendChild(el);
   });
   renderMakerWorkspace();
@@ -2963,7 +3024,9 @@ makerWorkspace.addEventListener("drop", (e) => {
   e.preventDefault();
   makerWorkspace.classList.remove("snapReady");
   if (!draggingBlockType) return;
-  makerProgram.push(defaultBlock(draggingBlockType));
+  const def = MAKER_BLOCKS.find(b => b.type === draggingBlockType);
+  if (!def) return;
+  makerProgram.push({ type:def.type, ...Object.fromEntries((def.fields || []).map(f => [f.k, f.default])) });
   draggingBlockType = null;
   renderMakerWorkspace();
   playSound("click");
@@ -2989,6 +3052,7 @@ function runMaker(){
   const goal = Math.max(1, Math.min(50, Number(makerGoal.value)||10));
   const intro = makerToCode();
   const code = `// Mini-game Maker\n${intro}\nstartMiniGame(${JSON.stringify(kind)}, { seconds:${seconds}, goal:${goal} });`;
+  makerRunning = true;
   codeBox.readOnly = false;
   codeBox.value = code;
   runCode();
@@ -3472,6 +3536,21 @@ function applyLanguage(){
   try{ renderStory(); }catch{}
   try{ renderDaily(); }catch{}
 }
+
+function narrationEnabled(){ return !!loadState().narrationOn; }
+function speak(text){
+  if (!canSpeak()) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = ({ en:"en", mi:"mi-NZ", es:"es" })[loadState().lang] || "en";
+  window.speechSynthesis.speak(utterance);
+}
+narrateBtn?.addEventListener("click", () => {
+  saveState({ narrationOn: !narrationEnabled() });
+  applyLanguage();
+  if (narrationEnabled()) speak(`${levelStory.textContent}. ${levelObjective.textContent}`);
+  else if (canSpeak()) window.speechSynthesis.cancel();
+});
 langSelect?.addEventListener("change", () => {
   saveState({ lang: langSelect.value });
   applyLanguage();
@@ -3689,7 +3768,7 @@ nextOnboardBtn?.addEventListener("click", () => {
 
 // ---------------------- Parent Lock (Kid-safe Focus Mode) ----------------------
 function tagParentOnly(){
-  [shareBtn, installBtn, teacherBtn, aboutBtn].forEach(el => { if (el) el.classList.add("parentOnly"); });
+  [shareBtn, installBtn, teacherBtn, aboutBtn].forEach(el => { if (el) el.classList.add("focusRestricted"); });
 }
 tagParentOnly();
 
@@ -3856,8 +3935,8 @@ function mathQuestion(){
   // Slightly harder if kid is older pack
   const pack = agePackSelect?.value || st.agePack || "6-7";
   let max = (pack === "4-5") ? 10 : (pack === "6-7" ? 20 : 30);
-  const a = randomInt(2, max);
-  const b = randomInt(2, max);
+  const a = 2 + Math.floor(Math.random() * (max - 1));
+  const b = 2 + Math.floor(Math.random() * (max - 1));
   const op = Math.random() < 0.85 ? "+" : "-";
   let q, ans;
   if (op === "+"){

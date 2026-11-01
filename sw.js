@@ -1,5 +1,5 @@
 // Starbyte Quest Service Worker (offline cache)
-const CACHE = "starbyte-cache-v7";
+const CACHE = "starbyte-cache-v8";
 const ASSETS = [
   "./",
   "./index.html",
@@ -23,7 +23,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k !== CACHE) ? caches.delete(k) : null));
+    await Promise.all(keys.map(k => (k.startsWith("starbyte-cache-") && k !== CACHE) ? caches.delete(k) : null));
     self.clients.claim();
   })());
 });
@@ -31,7 +31,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  const isAppShell = url.pathname.endsWith("/index.html") ||
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
+  const isAppShell = req.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith("/index.html") ||
     url.pathname.endsWith("/app.js") ||
     url.pathname.endsWith("/style.css") ||
     url.pathname.endsWith("/manifest.json");
@@ -40,21 +41,21 @@ self.addEventListener("fetch", (event) => {
     if (isAppShell){
       try{
         const fresh = await fetch(req);
-        cache.put(req, fresh.clone());
+        if (fresh.ok) await cache.put(req, fresh.clone());
         return fresh;
       }catch{
         const cached = await cache.match(req);
-        return cached || caches.match("./");
+        return cached || (req.mode === "navigate" ? await cache.match("./index.html") : null) || Response.error();
       }
     }
     const cached = await cache.match(req);
     if (cached) return cached;
     try {
       const fresh = await fetch(req);
-      cache.put(req, fresh.clone());
+      if (fresh.ok) await cache.put(req, fresh.clone());
       return fresh;
     } catch (e) {
-      return caches.match("./");
+      return Response.error();
     }
   })());
 });

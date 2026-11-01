@@ -751,3 +751,12 @@ h1,h2,h3,h4{
   font-size:12px;
 }
 body.focusMode .parentOnly{ display:none !important; }
+body.focusMode .focusRestricted{ display:none !important; }
+
+/* Keep the program and home menu usable on small touch screens. */
+.homeScreen{ overflow-y:auto; }
+.panel, .blocksCol{ min-width:0; }
+.block{ flex-wrap:wrap; }
+@media (prefers-reduced-motion: reduce){
+  #gameFrame{ animation:none; }
+}
